@@ -3072,6 +3072,11 @@ crypto-random-string@^2.0.0:
   resolved "https://registry.yarnpkg.com/crypto-random-string/-/crypto-random-string-2.0.0.tgz#ef2a7a966ec11083388369baa02ebead229b30d5"
   integrity sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==
 
+"crypto@npm:-@^0.0.1", "fs@npm:-@^0.0.1", "path@npm:-@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/-/-/--0.0.1.tgz#db6db7cd866142880dd03e5b8781d1b4fac0e5bd"
+  integrity sha512-3HfneK3DGAm05fpyj20sT3apkNcvPpCuccOThOPdzz8sY7GgQGe0l93XH9bt+YzibcTIgUAIMoyVJI740RtgyQ==
+
 css-blank-pseudo@^3.0.2:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/css-blank-pseudo/-/css-blank-pseudo-3.0.3.tgz#36523b01c12a25d812df343a32c322d2a2324561"
@@ -8283,11 +8288,6 @@ wbuf@^1.1.0, wbuf@^1.7.3:
   integrity sha512-O84QOnr0icsbFGLS0O3bI5FswxzRr8/gHwWkDlQFskhSPryQXvrTMxjxGP4+iWYoauLoBvfDpkrOauZ+0iZpDA==
   dependencies:
     minimalistic-assert "^1.0.0"
-
-web-vitals@^2.1.0:
-  version "2.1.4"
-  resolved "https://registry.yarnpkg.com/web-vitals/-/web-vitals-2.1.4.tgz#76563175a475a5e835264d373704f9dde718290c"
-  integrity sha512-sVWcwhU5mX6crfI5Vd2dC4qchyTqxV8URinzt25XqVh+bHEPGH4C3NPrNionCP7Obx59wrYEbNlw4Z8sjALzZg==
 
 webidl-conversions@^4.0.2:
   version "4.0.2"
