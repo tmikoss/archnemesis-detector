@@ -2,34 +2,60 @@ import { useRef, useState } from 'react'
 
 import resemble, { ResembleComparisonResult } from 'resemblejs'
 
-import { definitions } from './definitions'
+import { DefinitionsMap, EMPTY_CELL } from './definitions'
 
 import screenshotSrc from './images/screenshot.png'
+import { Preprocessor } from './Preprocessor'
+import { isEmpty, sortBy, map } from 'lodash'
 
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
 }
 
-const timeout = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+interface MatchResult {
+  name: string
+  mismatch: number
+}
+
+interface ParseResult {
+  x: number
+  y: number
+  empty: boolean
+  matchedName?: string
+  matchedPct?: number
+}
+
+const compareImage = (name: string, left: string, right: string): Promise<MatchResult> => {
+  return new Promise<MatchResult>((resolve) => {
+    resemble(left)
+      .compareTo(right)
+      .scaleToSameSize()
+      .onComplete((out) => {
+        const { rawMisMatchPercentage } = out as FixedResembleOut
+        resolve({ name, mismatch: rawMisMatchPercentage })
+      })
+  })
+}
 
 function App() {
   const fullCanvasRef = useRef<HTMLCanvasElement>(null)
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  const scratchpadRef = useRef<HTMLCanvasElement>(null)
   const matchRef = useRef<HTMLImageElement>(null)
 
-  const [output, setOutput] = useState('')
+  const [defs, setDefs] = useState<DefinitionsMap>({})
+
+  const [output, setOutput] = useState<ParseResult[]>([])
+
+  const loading = isEmpty(defs)
 
   const onLoad = async () => {
-    await timeout(500)
-
     const fullCanvas = fullCanvasRef.current?.getContext('2d')
     const iconCanvas = iconCanvasRef.current?.getContext('2d')
-    const scratchpad = scratchpadRef.current?.getContext('2d')
+
     const image = imgRef.current
 
-    if (!fullCanvas || !iconCanvas || !image || !scratchpad) {
+    if (!fullCanvas || !iconCanvas || !image) {
       return
     }
 
@@ -53,8 +79,6 @@ function App() {
     iconCanvas.canvas.width = iconWidth
     iconCanvas.canvas.height = iconHeight
 
-    const iconHeightWithoutTextRatio = 0.75
-
     for (let iconX = 0; iconX < 8; iconX++) {
       for (let iconY = 0; iconY < 8; iconY++) {
         iconCanvas.drawImage(
@@ -62,66 +86,30 @@ function App() {
           sourceX + iconY * iconWidth,
           sourceY + iconX * iconHeight,
           iconWidth,
-          iconHeight * iconHeightWithoutTextRatio,
+          iconHeight,
           0,
           0,
           iconWidth,
-          iconHeight * iconHeightWithoutTextRatio
+          iconHeight
         )
-
-        let minMismatch = 100
-        let bestMatchName = ''
-        let bestIcon = null
 
         const source = iconCanvas.canvas.toDataURL()
 
-        for (const name in definitions) {
-          const { iconUri } = definitions[name]
+        const { mismatch } = await compareImage('empty', source, EMPTY_CELL)
 
-          const img = new Image()
-          await new Promise((resolve) => {
-            img.onload = resolve
-            img.src = iconUri
-          })
-
-          scratchpad.rect(0, 0, scratchpad.canvas.width, scratchpad.canvas.height)
-          scratchpad.fillStyle = '#07071f'
-          scratchpad.fill()
-          scratchpad.drawImage(
-            img,
-            0,
-            0,
-            iconWidth,
-            iconHeight * iconHeightWithoutTextRatio,
-            0,
-            0,
-            iconWidth,
-            iconHeight * iconHeightWithoutTextRatio
+        if (mismatch < 15) {
+          setOutput((was) => [...was, { x: iconX, y: iconY, empty: true }])
+        } else {
+          const results = await Promise.all(
+            map(defs, ({ iconUri }, name) => compareImage(name, source, iconUri as string))
           )
 
-          const candidate = scratchpad.canvas.toDataURL()
+          const [{ mismatch, name }] = sortBy(results, 'mismatch')
 
-          const output = await new Promise<FixedResembleOut>((resolve) => {
-            resemble(source)
-              .compareTo(candidate)
-              .scaleToSameSize()
-              .onComplete((out) => resolve(out as FixedResembleOut))
-          })
-
-          bestMatchName += `${100 - output.rawMisMatchPercentage} match as ${name}\n`
-
-          if (output.rawMisMatchPercentage < minMismatch) {
-            minMismatch = output.rawMisMatchPercentage
-            bestIcon = candidate
-          }
-        }
-
-        if (minMismatch < 80) {
-          setOutput(bestMatchName)
-          if (matchRef.current && bestIcon) {
-            matchRef.current.src = bestIcon
-          }
-          // await timeout(2000)
+          setOutput((was) => [
+            ...was,
+            { x: iconX, y: iconY, empty: false, matchedName: name, matchedPct: 100 - mismatch }
+          ])
         }
       }
     }
@@ -129,19 +117,20 @@ function App() {
 
   return (
     <div>
+      <Preprocessor setDefs={setDefs} />
+
       <div>
-        <canvas ref={iconCanvasRef} height={48} width={75} />
+        <canvas ref={iconCanvasRef} width={0} height={0} />
         <img ref={matchRef} src='' alt='' />
-        <canvas ref={scratchpadRef} width={48} height={48} />
       </div>
-
-      <pre>{output}</pre>
 
       <div>
-        <canvas ref={fullCanvasRef} />
+        <canvas ref={fullCanvasRef} width={0} height={0} />
       </div>
 
-      <img ref={imgRef} src={screenshotSrc} alt='' onLoad={onLoad} style={{ display: 'none' }} />
+      {!loading && <pre>{JSON.stringify(output, null, 2)}</pre>}
+
+      {!loading && <img ref={imgRef} src={screenshotSrc} alt='' onLoad={onLoad} style={{ display: 'none' }} />}
     </div>
   )
 }
