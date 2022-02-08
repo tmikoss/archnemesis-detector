@@ -1,7 +1,12 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import { definitions, DefinitionsMap } from './definitions'
+import styled from 'styled-components'
 
 export const ICON_SIZE = 48
+
+const Scratchpad = styled.canvas`
+  display: none;
+`
 
 export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateAction<DefinitionsMap>> }> = ({
   setDefs
@@ -43,5 +48,5 @@ export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateActi
     exec()
   }, [setDefs])
 
-  return <canvas ref={scratchpadRef} width={ICON_SIZE} height={ICON_SIZE} style={{ display: 'none' }} />
+  return <Scratchpad ref={scratchpadRef} width={ICON_SIZE} height={ICON_SIZE} />
 }

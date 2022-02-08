@@ -5,8 +5,10 @@ import resemble, { ResembleComparisonResult } from 'resemblejs'
 import { DefinitionsMap, EMPTY_CELL } from './definitions'
 
 import screenshotSrc from './images/screenshot.png'
-import { Preprocessor } from './Preprocessor'
+import { Preprocessor, ICON_SIZE } from './Preprocessor'
 import { isEmpty, sortBy, map } from 'lodash'
+
+import styled from 'styled-components'
 
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
@@ -37,11 +39,38 @@ const compareImage = (name: string, left: string, right: string): Promise<MatchR
   })
 }
 
-function App() {
+const Layout = styled.div`
+  display: grid;
+  width: 100%;
+  grid-template-areas: 'icons current' 'icons output';
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 2vmin;
+`
+
+const ScreenshotContainer = styled.img`
+  display: none;
+`
+
+const IconsGrid = styled.div`
+  grid-area: icons;
+`
+
+const CurrentIcon = styled.div`
+  grid-area: current;
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+`
+
+const Output = styled.pre`
+  grid-area: output;
+`
+
+const App = () => {
   const fullCanvasRef = useRef<HTMLCanvasElement>(null)
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  const matchRef = useRef<HTMLImageElement>(null)
 
   const [defs, setDefs] = useState<DefinitionsMap>({})
 
@@ -116,22 +145,22 @@ function App() {
   }
 
   return (
-    <div>
+    <>
+      <Layout>
+        <CurrentIcon>
+          <canvas ref={iconCanvasRef} width={0} height={0} />
+        </CurrentIcon>
+
+        <IconsGrid>
+          <canvas ref={fullCanvasRef} width={0} height={0} />
+        </IconsGrid>
+
+        <Output>{JSON.stringify(output, null, 2)}</Output>
+      </Layout>
       <Preprocessor setDefs={setDefs} />
 
-      <div>
-        <canvas ref={iconCanvasRef} width={0} height={0} />
-        <img ref={matchRef} src='' alt='' />
-      </div>
-
-      <div>
-        <canvas ref={fullCanvasRef} width={0} height={0} />
-      </div>
-
-      {!loading && <pre>{JSON.stringify(output, null, 2)}</pre>}
-
-      {!loading && <img ref={imgRef} src={screenshotSrc} alt='' onLoad={onLoad} style={{ display: 'none' }} />}
-    </div>
+      {!loading && <ScreenshotContainer ref={imgRef} src={screenshotSrc} alt='' onLoad={onLoad} />}
+    </>
   )
 }
 
