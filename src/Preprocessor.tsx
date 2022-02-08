@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react'
-import { definitions, DefinitionsMap } from './definitions'
+import { definitions, Definition } from './definitions'
 import styled from 'styled-components'
 
 export const ICON_SIZE = 48
@@ -8,14 +8,21 @@ const Scratchpad = styled.canvas`
   display: none;
 `
 
-export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateAction<DefinitionsMap>> }> = ({
+interface ProcessedDef extends Definition {
+  name: string
+  iconUri: string
+}
+
+export type ProcessedDefinitionsMap = Record<string, ProcessedDef>
+
+export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateAction<ProcessedDefinitionsMap>> }> = ({
   setDefs
 }) => {
   const scratchpadRef = useRef<HTMLCanvasElement>(null)
 
   useLayoutEffect(() => {
     const exec = async () => {
-      const defmap: DefinitionsMap = {}
+      const defmap: ProcessedDefinitionsMap = {}
 
       const scratchpad = scratchpadRef.current?.getContext('2d')
 
@@ -39,7 +46,7 @@ export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateActi
 
         const transformed = scratchpad.canvas.toDataURL()
 
-        defmap[name] = { recipe, iconUri: transformed }
+        defmap[name] = { name, recipe, iconUri: transformed }
       }
 
       setDefs(defmap)

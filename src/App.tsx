@@ -2,11 +2,11 @@ import { useRef, useState } from 'react'
 
 import resemble, { ResembleComparisonResult } from 'resemblejs'
 
-import { DefinitionsMap, EMPTY_CELL } from './definitions'
+import { EMPTY_CELL } from './definitions'
 
 import screenshotSrc from './images/screenshot.png'
-import { Preprocessor, ICON_SIZE } from './Preprocessor'
-import { isEmpty, sortBy, map } from 'lodash'
+import { Preprocessor, ProcessedDefinitionsMap } from './Preprocessor'
+import { isEmpty, sortBy, map, countBy, filter, keys, every, includes } from 'lodash'
 
 import styled from 'styled-components'
 
@@ -72,7 +72,7 @@ const App = () => {
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const [defs, setDefs] = useState<DefinitionsMap>({})
+  const [defs, setDefs] = useState<ProcessedDefinitionsMap>({})
 
   const [output, setOutput] = useState<ParseResult[]>([])
 
@@ -129,9 +129,7 @@ const App = () => {
         if (mismatch < 15) {
           setOutput((was) => [...was, { x: iconX, y: iconY, empty: true }])
         } else {
-          const results = await Promise.all(
-            map(defs, ({ iconUri }, name) => compareImage(name, source, iconUri as string))
-          )
+          const results = await Promise.all(map(defs, ({ iconUri }, name) => compareImage(name, source, iconUri)))
 
           const [{ mismatch, name }] = sortBy(results, 'mismatch')
 
@@ -144,6 +142,18 @@ const App = () => {
     }
   }
 
+  const foundItems = countBy(
+    filter(output, ({ empty }) => !empty),
+    'matchedName'
+  )
+
+  const distinctFoundItems = keys(foundItems)
+
+  const foundRecipes = filter(
+    defs,
+    ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
+  )
+
   return (
     <>
       <Layout>
@@ -155,7 +165,14 @@ const App = () => {
           <canvas ref={fullCanvasRef} width={0} height={0} />
         </IconsGrid>
 
-        <Output>{JSON.stringify(output, null, 2)}</Output>
+        <Output>
+          {JSON.stringify(foundItems, null, 2)}
+          {JSON.stringify(
+            map(foundRecipes, ({ name, recipe }) => `${name} = ${recipe.join(' + ')}`),
+            null,
+            2
+          )}
+        </Output>
       </Layout>
       <Preprocessor setDefs={setDefs} />
 
