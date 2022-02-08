@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import resemble, { ResembleComparisonResult } from 'resemblejs'
 
 import { EMPTY_CELL } from './definitions'
 
-import screenshotSrc from './images/screenshot.png'
 import { Preprocessor, ProcessedDefinitionsMap } from './Preprocessor'
 import { isEmpty, sortBy, map, countBy, filter, keys, every, includes } from 'lodash'
 
@@ -88,8 +87,8 @@ const App = () => {
       return
     }
 
-    const sourceW = 2560
-    const sourceH = 1440
+    const sourceW = image.width
+    const sourceH = image.height
 
     const sourceX = sourceW * 0.06
     const sourceY = sourceH * 0.3
@@ -154,6 +153,28 @@ const App = () => {
     ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
   )
 
+  useEffect(() => {
+    const event = (evt: unknown) => {
+      const {
+        clipboardData: { files }
+      } = evt as React.ClipboardEvent
+
+      const firstFile = files ? files[0] : null
+
+      if (firstFile) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          if (imgRef.current && reader.result) {
+            imgRef.current.src = reader.result as string
+          }
+        }
+        reader.readAsDataURL(firstFile)
+      }
+    }
+
+    document.querySelector('body')?.addEventListener('paste', event)
+  }, [])
+
   return (
     <>
       <Layout>
@@ -175,8 +196,7 @@ const App = () => {
         </Output>
       </Layout>
       <Preprocessor setDefs={setDefs} />
-
-      {!loading && <ScreenshotContainer ref={imgRef} src={screenshotSrc} alt='' onLoad={onLoad} />}
+      {!loading && <ScreenshotContainer ref={imgRef} src='' alt='' onLoad={onLoad} />}
     </>
   )
 }
