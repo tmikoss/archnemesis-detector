@@ -36,7 +36,7 @@ export const Preprocessor: React.FC<{ setDefs: React.Dispatch<React.SetStateActi
         const img = new Image()
         await new Promise((resolve) => {
           img.onload = resolve
-          img.src = `/icons/${name}.png`
+          img.src = `${process.env.PUBLIC_URL}/icons/${name}.png`
         })
 
         scratchpad.rect(0, 0, ICON_SIZE, ICON_SIZE)
