@@ -5,6 +5,9 @@
   "private": true,
   "homepage": "https://tmikoss.github.io/archnemesis-detector",
   "dependencies": {
+    "@mui/material": "^5.4.1",
+    "@mui/styled-engine": "^5.4.1",
+    "@mui/styled-engine-sc": "^5.4.1",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
     "@testing-library/user-event": "^13.2.1",
@@ -18,6 +21,9 @@
     "resemblejs": "^4.0.1",
     "styled-components": "^5.3.3",
     "typescript": "^4.4.2"
+  },
+  "resolutions": {
+    "@mui/styled-engine": "npm:@mui/styled-engine-sc@latest"
   },
   "scripts": {
     "start": "react-scripts start",

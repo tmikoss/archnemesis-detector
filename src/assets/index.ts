@@ -1,6 +1,6 @@
 import poedb from './poedb.json'
 
-interface DataItem {
+export interface DataItem {
   id: string
   name: string
   tier: number

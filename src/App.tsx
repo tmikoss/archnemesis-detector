@@ -1,13 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import resemble, { ResembleComparisonResult } from 'resemblejs'
-import { sortBy, map, countBy, filter, keys, every, includes } from 'lodash'
-import styled from 'styled-components'
+import { sortBy, map, countBy, filter, keys, every, includes, find } from 'lodash'
 
-import { DATA, EMPTY_CELL } from './assets'
+import {
+  Avatar,
+  Grid,
+  LinearProgress,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
+  Badge,
+  Typography,
+  Container,
+  Tooltip,
+  Link
+} from '@mui/material'
+
+import { DATA, EMPTY_CELL, DataItem } from './assets'
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
 }
-
 interface MatchResult {
   id: string
   mismatch: number
@@ -33,45 +47,78 @@ const compareImage = (id: string, left: string, right: string): Promise<MatchRes
   })
 }
 
-const Layout = styled.div`
-  display: grid;
-  width: 100%;
-  grid-template-areas: 'icons current' 'icons output';
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto 1fr;
-  gap: 2vmin;
-`
+const dataItem = (id: string) => find(DATA, { id }) as DataItem
 
-const ScreenshotContainer = styled.img`
-  display: none;
-`
+const FoundItems: React.FC<{ foundItems: Record<string, number> }> = ({ foundItems }) => {
+  const listItems = map(foundItems, (count, id) => {
+    const { name, icon } = dataItem(id)
 
-const IconsGrid = styled.div`
-  grid-area: icons;
-`
+    return (
+      <ListItem key={id}>
+        <ListItemAvatar>
+          <Badge badgeContent={count > 1 ? count : null} color='primary'>
+            <Avatar src={icon} />
+          </Badge>
+        </ListItemAvatar>
+        <ListItemText primary={name} />
+      </ListItem>
+    )
+  })
 
-const CurrentIcon = styled.div`
-  grid-area: current;
-  display: flex;
-  flex-flow: row;
-  justify-content: center;
-`
+  return (
+    <Paper sx={{ p: 2 }}>
+      <Typography variant='h5'>Detected</Typography>
+      <List dense>{listItems}</List>
+    </Paper>
+  )
+}
 
-const Output = styled.pre`
-  grid-area: output;
-`
+const FoundRecipes: React.FC<{ foundItems: Record<string, number> }> = ({ foundItems }) => {
+  const foundRecipes = useMemo(() => {
+    const distinctFoundItems = keys(foundItems)
+
+    return filter(
+      DATA,
+      ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
+    )
+  }, [foundItems])
+
+  if (foundRecipes.length < 1) {
+    return null
+  }
+
+  const listItems = map(foundRecipes, ({ id, name, icon, recipe }) => {
+    const recipeText = map(recipe, (id) => dataItem(id).name).join(' + ')
+
+    return (
+      <ListItem key={id}>
+        <ListItemAvatar>
+          <Avatar src={icon} />
+        </ListItemAvatar>
+        <ListItemText primary={name} secondary={recipeText} />
+      </ListItem>
+    )
+  })
+
+  return (
+    <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant='h5'>Possible recipes</Typography>
+      <List dense>{listItems}</List>
+    </Paper>
+  )
+}
 
 const App = () => {
   const fullCanvasRef = useRef<HTMLCanvasElement>(null)
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const [output, setOutput] = useState<ParseResult[]>([])
+  const [parseResults, setParseResults] = useState<ParseResult[]>([])
+  const [hasSource, setHasSource] = useState(false)
 
-  const onLoad = async () => {
+  const onLoad = useCallback(async () => {
     const fullCanvas = fullCanvasRef.current?.getContext('2d')
     const iconCanvas = iconCanvasRef.current?.getContext('2d')
-
     const image = imgRef.current
 
     if (!fullCanvas || !iconCanvas || !image) {
@@ -117,32 +164,17 @@ const App = () => {
         const { mismatch } = await compareImage('empty', source, EMPTY_CELL)
 
         if (mismatch < 15) {
-          setOutput((was) => [...was, { x: iconX, y: iconY, empty: true }])
+          setParseResults((was) => [...was, { x: iconX, y: iconY, empty: true }])
         } else {
           const results = await Promise.all(map(DATA, ({ icon, id }) => compareImage(id, source, icon)))
 
           const [{ mismatch, id }] = sortBy(results, 'mismatch')
 
-          setOutput((was) => [
-            ...was,
-            { x: iconX, y: iconY, empty: false, id, matchedPct: 100 - mismatch }
-          ])
+          setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: 100 - mismatch }])
         }
       }
     }
-  }
-
-  const foundItems = countBy(
-    filter(output, ({ empty }) => !empty),
-    'id'
-  )
-
-  const distinctFoundItems = keys(foundItems)
-
-  const foundRecipes = filter(
-    DATA,
-    ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
-  )
+  }, [])
 
   useEffect(() => {
     const event = (evt: unknown) => {
@@ -153,6 +185,9 @@ const App = () => {
       const firstFile = files ? files[0] : null
 
       if (firstFile) {
+        setParseResults([])
+        setHasSource(true)
+
         const reader = new FileReader()
         reader.onload = () => {
           if (imgRef.current && reader.result) {
@@ -166,28 +201,74 @@ const App = () => {
     document.querySelector('body')?.addEventListener('paste', event)
   }, [])
 
+  const foundItems = useMemo(
+    () =>
+      countBy(
+        filter(parseResults, ({ empty }) => !empty),
+        'id'
+      ),
+    [parseResults]
+  )
+
+  const progress = Math.min(Math.ceil((parseResults.length * 100) / 64), 100)
+
   return (
-    <>
-      <Layout>
-        <CurrentIcon>
-          <canvas ref={iconCanvasRef} width={0} height={0} />
-        </CurrentIcon>
+    <Container maxWidth='xl'>
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, mt: 2 }}>
+            <Typography variant={hasSource ? 'caption' : 'subtitle1'} align='center'>
+              Use the power of
+              <Tooltip title="Just like nearly every AI project, it's just some math the developer does not 100% understand.">
+                <span> AI™ ComputerVision™ </span>
+              </Tooltip>
+              and data appropriated from{' '}
+              <Link href='https://poedb.tw/us/Archnemesis_league' target='_blank'>
+                PoEDB
+              </Link>{' '}
+              to find out what Archnemesis recipes you can make.
+            </Typography>
+            <Typography variant={hasSource ? 'caption' : 'h5'} align='center'>
+              Take a screenshot of the game with archnemesis inventory open, then Ctrl-V in this page.
+            </Typography>
+          </Paper>
+        </Grid>
 
-        <IconsGrid>
-          <canvas ref={fullCanvasRef} width={0} height={0} />
-        </IconsGrid>
+        {hasSource && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <LinearProgress variant='determinate' value={progress} />
+            </Paper>
 
-        <Output>
-          {JSON.stringify(foundItems, null, 2)}
-          {JSON.stringify(
-            map(foundRecipes, ({ name, recipe }) => `${name} = ${recipe.join(' + ')}`),
-            null,
-            2
-          )}
-        </Output>
-      </Layout>
-      <ScreenshotContainer ref={imgRef} src='' alt='' onLoad={onLoad} />
-    </>
+            <Paper sx={{ p: 2, mt: 2 }}>
+              <Typography variant='caption'>
+                This is very much a work in progress, it's bound to make mistakes, a lot of them. When it makes a
+                mistake, share the screenshot, describe which cell has the error, what the tool found, and what it
+                should have been.
+              </Typography>
+            </Paper>
+          </Grid>
+        )}
+        <Grid item xs='auto'>
+          <Paper sx={{ p: 2, display: hasSource ? 'block' : 'none' }}>
+            <canvas ref={fullCanvasRef} width={0} height={0} />
+          </Paper>
+        </Grid>
+        {hasSource && (
+          <Grid item xs='auto'>
+            <FoundItems foundItems={foundItems} />
+          </Grid>
+        )}
+        <Grid item xs>
+          <FoundRecipes foundItems={foundItems} />
+        </Grid>
+      </Grid>
+
+      <Paper sx={{ display: 'none' }}>
+        <img ref={imgRef} src={''} alt='' onLoad={onLoad} />
+        <canvas ref={iconCanvasRef} />
+      </Paper>
+    </Container>
   )
 }
 
