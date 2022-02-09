@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-
 import resemble, { ResembleComparisonResult } from 'resemblejs'
-
-import { EMPTY_CELL } from './definitions'
-
-import { Preprocessor, ProcessedDefinitionsMap } from './Preprocessor'
-import { isEmpty, sortBy, map, countBy, filter, keys, every, includes } from 'lodash'
-
+import { sortBy, map, countBy, filter, keys, every, includes } from 'lodash'
 import styled from 'styled-components'
 
+import { DATA, EMPTY_CELL } from './assets'
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
 }
 
 interface MatchResult {
-  name: string
+  id: string
   mismatch: number
 }
 
@@ -22,18 +17,18 @@ interface ParseResult {
   x: number
   y: number
   empty: boolean
-  matchedName?: string
+  id?: string
   matchedPct?: number
 }
 
-const compareImage = (name: string, left: string, right: string): Promise<MatchResult> => {
+const compareImage = (id: string, left: string, right: string): Promise<MatchResult> => {
   return new Promise<MatchResult>((resolve) => {
     resemble(left)
       .compareTo(right)
       .scaleToSameSize()
       .onComplete((out) => {
         const { rawMisMatchPercentage } = out as FixedResembleOut
-        resolve({ name, mismatch: rawMisMatchPercentage })
+        resolve({ id, mismatch: rawMisMatchPercentage })
       })
   })
 }
@@ -71,11 +66,7 @@ const App = () => {
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const [defs, setDefs] = useState<ProcessedDefinitionsMap>({})
-
   const [output, setOutput] = useState<ParseResult[]>([])
-
-  const loading = isEmpty(defs)
 
   const onLoad = async () => {
     const fullCanvas = fullCanvasRef.current?.getContext('2d')
@@ -128,13 +119,13 @@ const App = () => {
         if (mismatch < 15) {
           setOutput((was) => [...was, { x: iconX, y: iconY, empty: true }])
         } else {
-          const results = await Promise.all(map(defs, ({ iconUri }, name) => compareImage(name, source, iconUri)))
+          const results = await Promise.all(map(DATA, ({ icon, id }) => compareImage(id, source, icon)))
 
-          const [{ mismatch, name }] = sortBy(results, 'mismatch')
+          const [{ mismatch, id }] = sortBy(results, 'mismatch')
 
           setOutput((was) => [
             ...was,
-            { x: iconX, y: iconY, empty: false, matchedName: name, matchedPct: 100 - mismatch }
+            { x: iconX, y: iconY, empty: false, id, matchedPct: 100 - mismatch }
           ])
         }
       }
@@ -143,13 +134,13 @@ const App = () => {
 
   const foundItems = countBy(
     filter(output, ({ empty }) => !empty),
-    'matchedName'
+    'id'
   )
 
   const distinctFoundItems = keys(foundItems)
 
   const foundRecipes = filter(
-    defs,
+    DATA,
     ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
   )
 
@@ -195,8 +186,7 @@ const App = () => {
           )}
         </Output>
       </Layout>
-      <Preprocessor setDefs={setDefs} />
-      {!loading && <ScreenshotContainer ref={imgRef} src='' alt='' onLoad={onLoad} />}
+      <ScreenshotContainer ref={imgRef} src='' alt='' onLoad={onLoad} />
     </>
   )
 }
