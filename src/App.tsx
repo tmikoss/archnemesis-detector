@@ -18,6 +18,8 @@ import {
   Link
 } from '@mui/material'
 
+// import sample from './images/screenshot.png'
+
 import { DATA, EMPTY_CELL, DataItem } from './assets'
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
@@ -109,38 +111,37 @@ const FoundRecipes: React.FC<{ foundItems: Record<string, number> }> = ({ foundI
 }
 
 const App = () => {
-  const fullCanvasRef = useRef<HTMLCanvasElement>(null)
+  const gridCanvasRef = useRef<HTMLCanvasElement>(null)
   const iconCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
   const [parseResults, setParseResults] = useState<ParseResult[]>([])
-  const [hasSource, setHasSource] = useState(false)
+  const [screenshot, setScreenshot] = useState<string>()
 
   const onLoad = useCallback(async () => {
-    const fullCanvas = fullCanvasRef.current?.getContext('2d')
+    const gridCanvas = gridCanvasRef.current?.getContext('2d')
     const iconCanvas = iconCanvasRef.current?.getContext('2d')
     const image = imgRef.current
 
-    if (!fullCanvas || !iconCanvas || !image) {
+    if (!gridCanvas || !iconCanvas || !image) {
       return
     }
 
-    const sourceW = image.width
-    const sourceH = image.height
+    const screenshotHeight = image.height
 
-    const sourceX = sourceW * 0.06
-    const sourceY = sourceH * 0.3
+    const gridPositionX = screenshotHeight * 0.106
+    const gridPositionY = screenshotHeight * 0.3
 
-    const width = sourceW * 0.2285
-    const height = sourceH * 0.407
+    const gridWidth = screenshotHeight * 0.407
+    const gridHeight = gridWidth
 
-    fullCanvas.canvas.width = width
-    fullCanvas.canvas.height = height
+    gridCanvas.canvas.width = gridWidth
+    gridCanvas.canvas.height = gridHeight
 
-    fullCanvas.drawImage(image, sourceX, sourceY, width, height, 0, 0, width, height)
+    gridCanvas.drawImage(image, gridPositionX, gridPositionY, gridWidth, gridHeight, 0, 0, gridWidth, gridHeight)
 
-    const iconWidth = width / 8
-    const iconHeight = height / 8
+    const iconWidth = gridWidth / 8
+    const iconHeight = gridHeight / 8
 
     iconCanvas.canvas.width = iconWidth
     iconCanvas.canvas.height = iconHeight
@@ -149,8 +150,8 @@ const App = () => {
       for (let iconY = 0; iconY < 8; iconY++) {
         iconCanvas.drawImage(
           image,
-          sourceX + iconY * iconWidth,
-          sourceY + iconX * iconHeight,
+          gridPositionX + iconY * iconWidth,
+          gridPositionY + iconX * iconHeight,
           iconWidth,
           iconHeight,
           0,
@@ -186,12 +187,11 @@ const App = () => {
 
       if (firstFile) {
         setParseResults([])
-        setHasSource(true)
 
         const reader = new FileReader()
         reader.onload = () => {
           if (imgRef.current && reader.result) {
-            imgRef.current.src = reader.result as string
+            setScreenshot(reader.result as string)
           }
         }
         reader.readAsDataURL(firstFile)
@@ -217,7 +217,7 @@ const App = () => {
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, mt: 2 }}>
-            <Typography variant={hasSource ? 'caption' : 'subtitle1'} align='center'>
+            <Typography variant={screenshot ? 'caption' : 'subtitle1'} align='center'>
               Use the power of
               <Tooltip title="Just like nearly every AI project, it's just some math the developer does not 100% understand.">
                 <span> AI™ ComputerVision™ </span>
@@ -228,13 +228,13 @@ const App = () => {
               </Link>{' '}
               to find out what Archnemesis recipes you can make.
             </Typography>
-            <Typography variant={hasSource ? 'caption' : 'h5'} align='center'>
+            <Typography variant={screenshot ? 'caption' : 'h5'} align='center'>
               Take a screenshot of the game with archnemesis inventory open, then Ctrl-V in this page.
             </Typography>
           </Paper>
         </Grid>
 
-        {hasSource && (
+        {screenshot && (
           <Grid item xs={12}>
             <Paper sx={{ p: 2 }}>
               <LinearProgress variant='determinate' value={progress} />
@@ -250,11 +250,11 @@ const App = () => {
           </Grid>
         )}
         <Grid item xs='auto'>
-          <Paper sx={{ p: 2, display: hasSource ? 'block' : 'none' }}>
-            <canvas ref={fullCanvasRef} width={0} height={0} />
+          <Paper sx={{ p: 2, display: screenshot ? 'block' : 'none' }}>
+            <canvas ref={gridCanvasRef} width={0} height={0} />
           </Paper>
         </Grid>
-        {hasSource && (
+        {screenshot && (
           <Grid item xs='auto'>
             <FoundItems foundItems={foundItems} />
           </Grid>
@@ -265,7 +265,7 @@ const App = () => {
       </Grid>
 
       <Paper sx={{ display: 'none' }}>
-        <img ref={imgRef} src={''} alt='' onLoad={onLoad} />
+        <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} />
         <canvas ref={iconCanvasRef} />
       </Paper>
     </Container>
