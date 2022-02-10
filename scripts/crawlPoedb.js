@@ -3,6 +3,7 @@ import cheerio from 'cheerio'
 import fs from 'fs'
 import _ from 'lodash'
 import nodeCanvas from 'canvas'
+import { each } from 'cheerio/lib/api/traversing'
 
 const SOURCE_URL = 'https://poedb.tw/us/Archnemesis_league#Mods'
 const DESTINATION = 'src/assets/poedb.json'
@@ -43,21 +44,23 @@ const rows = $('#ArchnemesisArchnemesisMods > div.table-responsive > table > tbo
 for(const row of rows) {
   const $tr = $(row)
 
-  const imgSrc = $tr.find('td:nth-child(1) img').attr('src')
+  const imgSrc = $tr.find('td:nth-child(2) img').attr('src').replace('?locale=1&scale=1', '')
 
-  const nameNode = $tr.find('td:nth-child(1) a[class^=item]')
+  const nameNode = $tr.find('td:nth-child(2) a[class^=item]')
 
   const tier = TIERS[nameNode.attr('class')]
 
   const name = nameNode.text()
 
+  console.log(name)
+
   let rewards = []
-  $tr.find('td:nth-child(2) .currency').each((_i, ccy) => {
+  $tr.find('td:nth-child(3) .currency').each((_i, ccy) => {
     rewards.push($(ccy).text())
   })
 
   let recipe = []
-  $tr.find('td:nth-child(3) a[class^=item]').each((_i, part) => {
+  $tr.find('td:nth-child(4) a[class^=item]').each((_i, part) => {
     recipe.push(transformName($(part).text()))
   })
 
