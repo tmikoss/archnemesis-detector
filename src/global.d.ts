@@ -1,6 +1,6 @@
 interface MatchResult {
   id: string
-  mismatch: number
+  match: number
 }
 
 interface ParseResult {
@@ -9,4 +9,5 @@ interface ParseResult {
   empty: boolean
   id?: string
   matchedPct?: number
+  topMatches?: MatchResult[]
 }

@@ -15,7 +15,7 @@ const compareImage = (id: string, left: string, right: string): Promise<MatchRes
       .scaleToSameSize()
       .onComplete((out) => {
         const { rawMisMatchPercentage } = out as FixedResembleOut
-        resolve({ id, mismatch: rawMisMatchPercentage })
+        resolve({ id, match: 100 - rawMisMatchPercentage })
       })
   })
 }
@@ -40,18 +40,16 @@ const OVERRIDES: Override[] = [
   }
 ]
 
-const pickBest = (results: MatchResult[]): MatchResult => {
-  const sorted = sortBy(results, 'mismatch')
-
-  const sortedIds = map(sorted, 'id')
+const pickBest = (sortedResults: MatchResult[]): MatchResult => {
+  const sortedIds = map(sortedResults, 'id')
 
   for (const { matches, forcedResult } of OVERRIDES) {
     if (isEqual(matches, take(sortedIds, matches.length))) {
-      return find(sorted, { id: forcedResult }) as MatchResult
+      return find(sortedResults, { id: forcedResult }) as MatchResult
     }
   }
 
-  return sorted[0]
+  return sortedResults[0]
 }
 
 export const processImage = async (
@@ -102,16 +100,18 @@ export const processImage = async (
 
       const source = scratchpadCanvas.canvas.toDataURL()
 
-      const { mismatch } = await compareImage('empty', source, EMPTY_CELL)
+      const { match } = await compareImage('empty', source, EMPTY_CELL)
 
-      if (mismatch < 15) {
+      if (match > 85) {
         setParseResults((was) => [...was, { x: iconX, y: iconY, empty: true }])
       } else {
         const results = await Promise.all(map(DATA, ({ icon, id }) => compareImage(id, source, icon)))
 
-        const { mismatch, id } = pickBest(results)
+        const sortedResults = sortBy(results, ({ match }) => -match)
 
-        setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: 100 - mismatch }])
+        const { match, id } = pickBest(sortedResults)
+
+        setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: match, topMatches: take(sortedResults, 10) }])
       }
     }
   }
