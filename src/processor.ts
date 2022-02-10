@@ -39,12 +39,12 @@ const OVERRIDES: Override[] = [
     forcedResult: 'arcane-buffer'
   },
   {
-    matches: ['echoist', 'stormweaver', 'frostweaver', 'soul-conduit'],
-    forcedResult: 'stormweaver'
-  },
-  {
     matches: ['echoist', 'arcane-buffer', 'berserker', 'toxic'],
     forcedResult: 'arcane-buffer'
+  },
+  {
+    matches: ['toxic', 'echoist', 'arcane-buffer', 'hasted', 'stormweaver'],
+    forcedResult: 'stormweaver'
   },
   {
     matches: ['toxic', 'arcane-buffer', 'echoist', 'incendiary', 'stormweaver'],
