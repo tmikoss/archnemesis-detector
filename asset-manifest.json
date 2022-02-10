@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/archnemesis-detector/static/js/main.e13a65af.js",
+    "main.js": "/archnemesis-detector/static/js/main.c480c410.js",
     "index.html": "/archnemesis-detector/index.html",
-    "main.e13a65af.js.map": "/archnemesis-detector/static/js/main.e13a65af.js.map"
+    "main.c480c410.js.map": "/archnemesis-detector/static/js/main.c480c410.js.map"
   },
   "entrypoints": [
-    "static/js/main.e13a65af.js"
+    "static/js/main.c480c410.js"
   ]
 }
