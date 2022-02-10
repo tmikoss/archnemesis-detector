@@ -2,8 +2,7 @@ import resemble, { ResembleComparisonResult } from 'resemblejs'
 import { sortBy, map, isEqual, find, take } from 'lodash'
 
 import { DATA, EMPTY_CELL } from './assets'
-
-const ICONS_PER_ROW = 8
+import { ICONS_PER_ROW } from './utils'
 
 interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
@@ -87,8 +86,8 @@ export const processImage = async (
   scratchpadCanvas.canvas.width = iconWidth
   scratchpadCanvas.canvas.height = iconHeight
 
-  for (let iconX = 0; iconX < ICONS_PER_ROW; iconX++) {
-    for (let iconY = 0; iconY < ICONS_PER_ROW; iconY++) {
+  for (let iconY = 0; iconY < ICONS_PER_ROW; iconY++) {
+    for (let iconX = 0; iconX < ICONS_PER_ROW; iconX++) {
       scratchpadCanvas.drawImage(
         image,
         gridPositionX + iconX * iconWidth,

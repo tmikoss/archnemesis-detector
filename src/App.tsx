@@ -1,50 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { map, countBy, filter, keys, every, includes, find } from 'lodash'
-
 import {
   Avatar,
   Grid,
-  LinearProgress,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   Paper,
-  Badge,
   Typography,
   Container,
   Tooltip,
-  Link
+  Link,
+  Box
 } from '@mui/material'
 
-import { DATA, DataItem } from './assets'
+import { DATA } from './assets'
+import { dataItem } from './utils'
 import { processImage } from './processor'
-
-const dataItem = (id: string) => find(DATA, { id }) as DataItem
-
-const FoundItems: React.FC<{ foundItems: Record<string, number> }> = ({ foundItems }) => {
-  const listItems = map(foundItems, (count, id) => {
-    const { name, icon } = dataItem(id)
-
-    return (
-      <ListItem key={id}>
-        <ListItemAvatar>
-          <Badge badgeContent={count > 1 ? count : null} color='primary'>
-            <Avatar src={icon} />
-          </Badge>
-        </ListItemAvatar>
-        <ListItemText primary={name} />
-      </ListItem>
-    )
-  })
-
-  return (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant='h5'>Detected</Typography>
-      <List dense>{listItems}</List>
-    </Paper>
-  )
-}
+import { Results } from './Results'
 
 const FoundRecipes: React.FC<{ foundItems: Record<string, number> }> = ({ foundItems }) => {
   const foundRecipes = useMemo(() => {
@@ -132,8 +106,6 @@ const App = () => {
     [parseResults]
   )
 
-  const progress = Math.min(Math.ceil((parseResults.length * 100) / 64), 100)
-
   return (
     <Container maxWidth='xl'>
       <Grid container spacing={2}>
@@ -150,44 +122,54 @@ const App = () => {
               </Link>{' '}
               to find out what Archnemesis recipes you can make.
             </Typography>
-            <Typography variant={screenshot ? 'caption' : 'h5'} align='center'>
-              Take a screenshot of the game with archnemesis inventory open, then Ctrl-V in this page.
+            <Typography variant={screenshot ? 'caption' : 'h5'} align='center' sx={{ my: 4 }}>
+              Take a full-size screenshot of the game with archnemesis inventory open, then Ctrl-V in this page.
             </Typography>
+            {!screenshot && (
+              <Grid container justifyContent='center'>
+                <Link component='button' onClick={() => setScreenshot(`${process.env.PUBLIC_URL}/sampleImage.png`)}>
+                  Or click here to load a sample image.
+                </Link>
+              </Grid>
+            )}
           </Paper>
         </Grid>
 
         {screenshot && (
           <Grid item xs={12}>
             <Paper sx={{ p: 2 }}>
-              <LinearProgress variant='determinate' value={progress} />
-            </Paper>
-
-            <Paper sx={{ p: 2, mt: 2 }}>
               <Typography variant='caption'>
                 This is very much a work in progress, it's bound to make mistakes, a lot of them. When it makes a
-                mistake, share the screenshot, describe which cell has the error, what the tool found, and what it
-                should have been.
+                mistake, click on the wrong cell in right-side grid and follow the instructions there.
               </Typography>
             </Paper>
           </Grid>
         )}
-        <Grid item xs='auto'>
+        <Grid item xs={12} md='auto'>
           <Paper sx={{ p: 2, display: screenshot ? 'block' : 'none' }}>
             <canvas ref={gridCanvasRef} width={0} height={0} />
-          </Paper>
-          <Paper sx={{ display: 'none' }}>
-            <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} />
+
+            <Typography variant='caption' component='div'>
+              Above image should contain exactly the archnemesis inventory from your screenshot
+            </Typography>
           </Paper>
         </Grid>
         {screenshot && (
-          <Grid item xs='auto'>
-            <FoundItems foundItems={foundItems} />
-          </Grid>
+          <>
+            <Grid item xs={12} md>
+              <Results parseResults={parseResults} />
+            </Grid>
+
+            <Grid item xs={12}>
+              <FoundRecipes foundItems={foundItems} />
+            </Grid>
+          </>
         )}
-        <Grid item xs>
-          <FoundRecipes foundItems={foundItems} />
-        </Grid>
       </Grid>
+
+      <Box sx={{ display: 'none' }}>
+        <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} />
+      </Box>
     </Container>
   )
 }
