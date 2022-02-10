@@ -39,13 +39,23 @@ describe('basic.png', () => {
     [6, 1, 'overcharged'],
     [8, 1, 'flameweaver'],
     [3, 1, 'arcane-buffer'],
-    [2, 1, 'stormweaver']
+    [3, 2, 'arcane-buffer'],
+    [2, 1, 'stormweaver'],
+    [1, 8, 'malediction'],
+    [8, 8, 'stormweaver'],
   ]
 
   _.each(knownContents, ([row, column, expected]) => {
     it(`should detect ${expected} at row ${row}, column ${column}`, () => {
       const item = _.find(result, { x: column - 1, y: row - 1 })
-      expect(item?.id).toBe(expected)
+
+      const foundId = item?.id
+
+      if (foundId !== expected) {
+        console.log(item)
+      }
+
+      expect(foundId).toBe(expected)
     })
   })
 })

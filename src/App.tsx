@@ -125,7 +125,7 @@ const App = () => {
             <Typography variant={screenshot ? 'caption' : 'h5'} align='center' sx={{ my: 4 }}>
               Take a full-size screenshot of the game with archnemesis inventory open, then Ctrl-V in this page.
             </Typography>
-            {!screenshot && (
+            {false && (
               <Grid container justifyContent='center'>
                 <Link component='button' onClick={() => setScreenshot(`${process.env.PUBLIC_URL}/sampleImage.png`)}>
                   Or click here to load a sample image.
