@@ -22,11 +22,11 @@ describe('basic.png', () => {
     await processImage(image, buildCanvas(), setState, buildCanvas())
   }, TIMEOUT)
 
-  test('should provide result for every square', () => {
+  it('should provide result for every square', () => {
     expect(result.length).toBe(64)
   })
 
-  test('should detect and label empty squares', () => {
+  it('should detect and label empty squares', () => {
     expect(_.find(result, { x: 1, y: 1 })?.empty).toBe(true)
   })
 
@@ -43,7 +43,7 @@ describe('basic.png', () => {
   ]
 
   _.each(knownContents, ([row, column, expected]) => {
-    test(`should detect ${expected} at row ${row}, column ${column}`, () => {
+    it(`should detect ${expected} at row ${row}, column ${column}`, () => {
       const item = _.find(result, { x: column - 1, y: row - 1 })
       expect(item?.id).toBe(expected)
     })

@@ -1,5 +1,5 @@
 import resemble, { ResembleComparisonResult } from 'resemblejs'
-import { sortBy, map } from 'lodash'
+import { sortBy, map, isEqual, find, take } from 'lodash'
 
 import { DATA, EMPTY_CELL } from './assets'
 
@@ -19,6 +19,40 @@ const compareImage = (id: string, left: string, right: string): Promise<MatchRes
         resolve({ id, mismatch: rawMisMatchPercentage })
       })
   })
+}
+
+type Override = {
+  matches: string[],
+  forcedResult: string
+}
+
+const OVERRIDES: Override[] = [
+  {
+    matches: ['berserker', 'toxic', 'echoist', 'arcane-buffer'],
+    forcedResult: 'toxic'
+  },
+  {
+    matches: ['echoist', 'arcane-buffer', 'berserker', 'incendiary'],
+    forcedResult: 'arcane-buffer'
+  },
+  {
+    matches: ['echoist', 'stormweaver', 'frostweaver', 'soul-conduit'],
+    forcedResult: 'stormweaver'
+  }
+]
+
+const pickBest = (results: MatchResult[]): MatchResult => {
+  const sorted = sortBy(results, 'mismatch')
+
+  const sortedIds = map(sorted, 'id')
+
+  for (const { matches, forcedResult } of OVERRIDES) {
+    if (isEqual(matches, take(sortedIds, matches.length))) {
+      return find(sorted, { id: forcedResult }) as MatchResult
+    }
+  }
+
+  return sorted[0]
 }
 
 export const processImage = async (
@@ -76,7 +110,7 @@ export const processImage = async (
       } else {
         const results = await Promise.all(map(DATA, ({ icon, id }) => compareImage(id, source, icon)))
 
-        const [{ mismatch, id }] = sortBy(results, 'mismatch')
+        const { mismatch, id } = pickBest(results)
 
         setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: 100 - mismatch }])
       }
