@@ -1,3 +1,8 @@
+interface MatchResult {
+  id: string
+  mismatch: number
+}
+
 interface ParseResult {
   x: number
   y: number

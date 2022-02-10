@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { map, countBy, filter, keys, every, includes, find } from 'lodash'
 
 import {
@@ -17,10 +17,8 @@ import {
   Link
 } from '@mui/material'
 
-// import sample from './images/screenshot.png'
-
 import { DATA, DataItem } from './assets'
-import { Classifier } from './Classifier'
+import { processImage } from './processor'
 
 const dataItem = (id: string) => find(DATA, { id }) as DataItem
 
@@ -84,8 +82,22 @@ const FoundRecipes: React.FC<{ foundItems: Record<string, number> }> = ({ foundI
 }
 
 const App = () => {
+  const gridCanvasRef = useRef<HTMLCanvasElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
+
   const [parseResults, setParseResults] = useState<ParseResult[]>([])
   const [screenshot, setScreenshot] = useState<string>()
+
+  const onLoad = useCallback(async () => {
+    const previewCanvas = gridCanvasRef.current
+    const image = imgRef.current
+
+    if (!previewCanvas || !image) {
+      return
+    }
+
+    processImage(image, previewCanvas, setParseResults)
+  }, [setParseResults])
 
   useEffect(() => {
     const event = (evt: unknown) => {
@@ -160,7 +172,12 @@ const App = () => {
           </Grid>
         )}
         <Grid item xs='auto'>
-          <Classifier screenshot={screenshot} setParseResults={setParseResults} />
+          <Paper sx={{ p: 2, display: screenshot ? 'block' : 'none' }}>
+            <canvas ref={gridCanvasRef} width={0} height={0} />
+          </Paper>
+          <Paper sx={{ display: 'none' }}>
+            <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} />
+          </Paper>
         </Grid>
         {screenshot && (
           <Grid item xs='auto'>
