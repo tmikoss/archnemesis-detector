@@ -54,6 +54,9 @@ describe('reported misclassifications', () => {
     'testSamples/issue-6.jpeg': [
       [0, 1, 'toxic']
     ],
+    'testSamples/issue-5.png': [
+      [4, 7, 'empowered-elements']
+    ],
   }
 
   _.each(expectationsMap, (knownContents, filename) => {
