@@ -35,6 +35,14 @@ describe('reported misclassifications', () => {
     ],
     'testSamples/issue-17.jpeg': [
       [4, 6, 'stormweaver']
+    ],
+    'testSamples/issue-15.png': [
+      [0, 6, 'incendiary'],
+      [1, 6, 'stormweaver'],
+      [2, 4, 'stormweaver'],
+      [3, 4, 'berserker'],
+      [4, 7, 'stormweaver'],
+      [7, 7, 'arcane-buffer'],
     ]
   }
 
