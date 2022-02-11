@@ -8,11 +8,31 @@ interface FixedResembleOut extends ResembleComparisonResult {
   rawMisMatchPercentage: number
 }
 
-const compareImage = (id: string, left: string, right: string): Promise<MatchResult> => {
+const TEMPLATE_SIZE = 78
+const IGNORE_AREA = 5
+
+resemble.outputSettings({
+  ignoredBox: {
+    left: 0,
+    top: 63,
+    right: 33,
+    bottom: 100
+  },
+  boundingBox: {
+    left: IGNORE_AREA,
+    top: IGNORE_AREA,
+    right: TEMPLATE_SIZE - IGNORE_AREA,
+    bottom: TEMPLATE_SIZE - IGNORE_AREA
+  },
+  errorType: 'movement'
+})
+
+const compareImage = (id: string, fromScreenshot: string, fromTemplate: string, skipBoundingBox: boolean = false): Promise<MatchResult> => {
   return new Promise<MatchResult>((resolve) => {
-    resemble(left)
-      .compareTo(right)
+    resemble(fromTemplate)
+      .compareTo(fromScreenshot)
       .scaleToSameSize()
+      .setReturnEarlyThreshold(70)
       .onComplete((out) => {
         const { rawMisMatchPercentage } = out as FixedResembleOut
         resolve({ id, match: 100 - rawMisMatchPercentage })
@@ -26,30 +46,30 @@ type Override = {
 }
 
 const OVERRIDES: Override[] = [
-  {
-    matches: ['berserker', 'toxic', 'echoist', 'arcane-buffer'],
-    forcedResult: 'toxic'
-  },
-  {
-    matches: ['berserker', 'toxic', 'arcane-buffer', 'echoist'],
-    forcedResult: 'toxic'
-  },
-  {
-    matches: ['echoist', 'arcane-buffer', 'berserker', 'incendiary'],
-    forcedResult: 'arcane-buffer'
-  },
-  {
-    matches: ['echoist', 'arcane-buffer', 'berserker', 'toxic'],
-    forcedResult: 'arcane-buffer'
-  },
-  {
-    matches: ['toxic', 'echoist', 'arcane-buffer', 'hasted', 'stormweaver'],
-    forcedResult: 'stormweaver'
-  },
-  {
-    matches: ['toxic', 'arcane-buffer', 'echoist', 'incendiary', 'stormweaver'],
-    forcedResult: 'stormweaver'
-  },
+  // {
+  //   matches: ['berserker', 'toxic', 'echoist', 'arcane-buffer'],
+  //   forcedResult: 'toxic'
+  // },
+  // {
+  //   matches: ['berserker', 'toxic', 'arcane-buffer', 'echoist'],
+  //   forcedResult: 'toxic'
+  // },
+  // {
+  //   matches: ['echoist', 'arcane-buffer', 'berserker', 'incendiary'],
+  //   forcedResult: 'arcane-buffer'
+  // },
+  // {
+  //   matches: ['echoist', 'arcane-buffer', 'berserker', 'toxic'],
+  //   forcedResult: 'arcane-buffer'
+  // },
+  // {
+  //   matches: ['toxic', 'echoist', 'arcane-buffer', 'hasted', 'stormweaver'],
+  //   forcedResult: 'stormweaver'
+  // },
+  // {
+  //   matches: ['toxic', 'arcane-buffer', 'echoist', 'incendiary', 'stormweaver'],
+  //   forcedResult: 'stormweaver'
+  // },
 ]
 
 const pickBest = (sortedResults: MatchResult[]): MatchResult => {
@@ -112,7 +132,7 @@ export const processImage = async (
 
       const source = scratchpadCanvas.canvas.toDataURL()
 
-      const { match } = await compareImage('empty', source, EMPTY_CELL)
+      const { match } = await compareImage('empty', EMPTY_CELL, source, true)
 
       if (match > 85) {
         setParseResults((was) => [...was, { x: iconX, y: iconY, empty: true }])

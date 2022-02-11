@@ -83,7 +83,6 @@ const App = () => {
 
       if (firstFile) {
         setParseResults([])
-
         const reader = new FileReader()
         reader.onload = () => {
           if (reader.result) {
@@ -168,7 +167,7 @@ const App = () => {
       </Grid>
 
       <Box sx={{ display: 'none' }}>
-        <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} />
+        <img ref={imgRef} src={screenshot} alt='' onLoad={onLoad} key={screenshot} />
       </Box>
     </Container>
   )

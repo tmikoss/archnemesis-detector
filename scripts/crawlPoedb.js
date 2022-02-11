@@ -3,7 +3,6 @@ import cheerio from 'cheerio'
 import fs from 'fs'
 import _ from 'lodash'
 import nodeCanvas from 'canvas'
-import { each } from 'cheerio/lib/api/traversing'
 
 const SOURCE_URL = 'https://poedb.tw/us/Archnemesis_league#Mods'
 const DESTINATION = 'src/assets/poedb.json'
