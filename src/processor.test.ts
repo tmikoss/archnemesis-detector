@@ -43,6 +43,13 @@ describe('reported misclassifications', () => {
       [3, 4, 'berserker'],
       [4, 7, 'stormweaver'],
       [7, 7, 'arcane-buffer'],
+    ],
+    'testSamples/issue-8.png': [
+      [1, 2, 'corrupter'],
+      [2, 7, 'arcane-buffer'],
+      [4, 4, 'juggernaut'],
+      [5, 7, 'evocationist'],
+      [6, 5, 'berserker'],
     ]
   }
 
