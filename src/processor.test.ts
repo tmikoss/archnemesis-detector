@@ -50,7 +50,10 @@ describe('reported misclassifications', () => {
       [4, 4, 'juggernaut'],
       [5, 7, 'evocationist'],
       [6, 5, 'berserker'],
-    ]
+    ],
+    'testSamples/issue-6.jpeg': [
+      [0, 1, 'toxic']
+    ],
   }
 
   _.each(expectationsMap, (knownContents, filename) => {
