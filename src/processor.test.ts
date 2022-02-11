@@ -9,53 +9,63 @@ type KnownContents = [row: number, column: number, id?: string][]
 const loadImage = async (source: string) => nodeCanvas.loadImage(source) as unknown as HTMLImageElement
 const buildCanvas = () => nodeCanvas.createCanvas(2000, 2000) as unknown as HTMLCanvasElement
 
-describe('basic.png', () => {
-  let result: ParseResult[] = []
+describe('reported misclassifications', () => {
+  const expectationsMap: Record<string, KnownContents> = {
+    'testSamples/basic.png': [
+      [1, 1, 'juggernaut'],
+      [1, 2, 'flame-strider'],
+      [2, 2, undefined],
+      [1, 5, 'toxic'],
+      [5, 1, 'steel-infused'],
+      [6, 1, 'overcharged'],
+      [8, 1, 'flameweaver'],
+      [3, 1, 'arcane-buffer'],
+      [3, 2, 'arcane-buffer'],
+      [2, 1, 'stormweaver'],
+      [1, 8, 'malediction'],
+      [8, 8, 'stormweaver'],
+    ],
+    'testSamples/issue-16.png': [
+      [1, 5, 'rejuvenating'],
+      [1, 6, 'arcane-buffer'],
+      [2, 1, 'mana-siphoner'],
+      [3, 6, 'evocationist'],
+      [3, 8, 'flameweaver'],
+      [4, 2, 'echoist'],
+    ]
+  }
 
-  beforeAll(async () => {
-    const setState = jest.fn(callback => {
-      result = callback(result)
-    })
+  _.each(expectationsMap, (knownContents, filename) => {
+    describe(filename, () => {
+      let result: ParseResult[] = []
 
-    const image = await loadImage('testSamples/basic.png')
+      beforeAll(async () => {
+        const setState = jest.fn(callback => {
+          result = callback(result)
+        })
 
-    await processImage(image, buildCanvas(), setState, buildCanvas())
-  }, TIMEOUT)
+        const image = await loadImage(filename)
 
-  it('should provide result for every square', () => {
-    expect(result.length).toBe(64)
-  })
+        await processImage(image, buildCanvas(), setState, buildCanvas())
+      }, TIMEOUT)
 
-  it('should detect and label empty squares', () => {
-    expect(_.find(result, { x: 1, y: 1 })?.empty).toBe(true)
-  })
+      it('should provide result for every square', () => {
+        expect(result.length).toBe(64)
+      })
 
-  const knownContents: KnownContents = [
-    [1, 1, 'juggernaut'],
-    [1, 2, 'flame-strider'],
-    [2, 2, undefined],
-    [1, 5, 'toxic'],
-    [5, 1, 'steel-infused'],
-    [6, 1, 'overcharged'],
-    [8, 1, 'flameweaver'],
-    [3, 1, 'arcane-buffer'],
-    [3, 2, 'arcane-buffer'],
-    [2, 1, 'stormweaver'],
-    [1, 8, 'malediction'],
-    [8, 8, 'stormweaver'],
-  ]
+      _.each(knownContents, ([row, column, expected]) => {
+        it(`should detect ${expected} at row ${row}, column ${column}`, () => {
+          const item = _.find(result, { x: column - 1, y: row - 1 })
 
-  _.each(knownContents, ([row, column, expected]) => {
-    it(`should detect ${expected} at row ${row}, column ${column}`, () => {
-      const item = _.find(result, { x: column - 1, y: row - 1 })
+          const foundId = item?.id
 
-      const foundId = item?.id
+          if (foundId !== expected) {
+            console.log(item)
+          }
 
-      if (foundId !== expected) {
-        console.log(item)
-      }
-
-      expect(foundId).toBe(expected)
+          expect(foundId).toBe(expected)
+        })
+      })
     })
   })
 })
