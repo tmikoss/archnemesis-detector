@@ -11,3 +11,13 @@ interface ParseResult {
   matchedPct?: number
   topMatches?: MatchResult[]
 }
+
+interface DispatchOverride {
+  result: ParseResult
+  override: string
+}
+
+interface ForcedOverride {
+  override: string
+  conditions: Array<{ id: string, min: number, max: number }>
+}

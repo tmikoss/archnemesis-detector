@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { map, countBy, filter, sortBy, each, every, includes, uniq, flatMap, find, without } from 'lodash'
 import {
   Avatar,
@@ -15,7 +15,6 @@ import {
   DialogTitle,
   Typography,
   DialogContent,
-  Link,
   Grid,
   IconButton,
   Tooltip,
@@ -40,20 +39,16 @@ const GridCell = styled.div<{ $x: number; $y: number }>`
   cursor: pointer;
 `
 
-const JsonContainer = styled.div`
-  max-height: 50vh;
-  overflow: scroll;
-  padding: 2em;
-  font-size: 0.75em;
-`
-
 const PreviewImg = styled.img`
   width: 100%;
   max-width: ${ICONS_PER_ROW * ICON_WIDTH}px;
 `
 
-const DetectedGridCell: React.FC<{ result: ParseResult }> = ({ result }) => {
-  const { id, x, y, empty } = result
+const DetectedGridCell: React.FC<{ result: ParseResult; dispatchForcedOverride: React.Dispatch<DispatchOverride> }> = ({
+  result,
+  dispatchForcedOverride
+}) => {
+  const { id, x, y, empty, topMatches } = result
 
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -69,48 +64,66 @@ const DetectedGridCell: React.FC<{ result: ParseResult }> = ({ result }) => {
   return (
     <>
       <GridCell $x={x} $y={y} key={`${x}-${y}`} onClick={openModal}>
-        <Avatar src={icon} alt={name} sx={{ width: ICON_WIDTH, height: ICON_WIDTH, backgroundColor: '#07071f' }}>
-          {empty ? 'x' : null}
-        </Avatar>
+        <Tooltip title={empty ? 'empty' : name}>
+          <Avatar src={icon} alt={name} sx={{ width: ICON_WIDTH, height: ICON_WIDTH, backgroundColor: '#07071f' }}>
+            {empty ? 'x' : null}
+          </Avatar>
+        </Tooltip>
       </GridCell>
 
       <Dialog onClose={closeModal} open={modalOpen} onBackdropClick={closeModal}>
-        <DialogTitle>Computer says this is {name || 'empty'}. Is that wrong?</DialogTitle>
+        <DialogTitle>Computer says this is {empty ? 'empty' : name}. Is that wrong?</DialogTitle>
         <DialogContent>
+          {!empty && (
+            <>
+              <Typography>These are the sorted top matches. Click one to force a replacement.</Typography>
+              <Grid container>
+                {map(topMatches, ({ id }) => {
+                  const { icon, name } = dataItem(id)
+
+                  const onClick = () => {
+                    dispatchForcedOverride({ override: id, result })
+                    closeModal()
+                  }
+
+                  return (
+                    <Grid item xs={2} key={id}>
+                      <Tooltip title={name}>
+                        <IconButton onClick={onClick}>
+                          <Avatar src={icon} sx={{ width: ICON_WIDTH * 1.5, height: ICON_WIDTH * 1.5 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Grid>
+                  )
+                })}
+              </Grid>
+            </>
+          )}
+
           <Typography>
-            First, did you upload full, uncompressed screenshot straight from the game? No cropping, no editing? No
-            third party screenshot tools? This thing needs as much image quality as it can get.{' '}
+            Did you upload full, uncompressed screenshot straight from the game? No cropping, no editing? No third party
+            screenshot tools? This thing needs as much image quality as it can get.{' '}
             <strong>If you have doubts, please try again with a better image.</strong> More resolution, more better.
           </Typography>
 
           <Typography sx={{ mt: 1 }}>
-            Second, did the left side window show your archnemesis inventory, and only that? The 8 by 8 grid?{' '}
+            Did the left side window show your archnemesis inventory, and only that? The 8 by 8 grid?{' '}
             <strong>If no, the issue is screenshot alignment.</strong> If you cropped the screenshot, try again with a
             full-size one.
           </Typography>
-
-          <Typography sx={{ mt: 1 }}>
-            If the above did not help, submit a bug report. Please first look over the already open issues, and try not
-            to create duplicates. Include the full in-game screenshot, not edited or cropped in any way. Ideally, as a
-            dropbox / imgur / ... link, because GitHub compresses in-line images. Describe what was mis-identified. And
-            include the debug text from below. All of it, it scrolls! All clear? Then go{' '}
-            <Link href='https://github.com/tmikoss/archnemesis-detector/issues' target='_blank'>
-              here
-            </Link>
-            . And please be patient, this is something I do in my already scarce free time :(
-          </Typography>
         </DialogContent>
-
-        <JsonContainer>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </JsonContainer>
       </Dialog>
     </>
   )
 }
 
-export const DetectedGrid: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
-  const cells = map(parseResults, (result, idx) => <DetectedGridCell result={result} key={idx} />)
+export const DetectedGrid: React.FC<{
+  parseResults: ParseResult[]
+  dispatchForcedOverride: React.Dispatch<DispatchOverride>
+}> = ({ parseResults, dispatchForcedOverride }) => {
+  const cells = map(parseResults, (result, idx) => (
+    <DetectedGridCell result={result} dispatchForcedOverride={dispatchForcedOverride} key={idx} />
+  ))
 
   return (
     <>
@@ -176,7 +189,7 @@ const RecipeRow: React.FC<{
 
   const recipeItems = map(recipe, dataItem)
 
-  const searchText = map(recipeItems, 'name').join('|')
+  const searchText = `^(${map(recipeItems, ({ id }) => id.replaceAll('-', '.')).join('|')})`
 
   const partsText = map(recipeItems, ({ id, name }) => {
     const found = find(parseResults, { id })

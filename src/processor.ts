@@ -106,7 +106,7 @@ export const processImage = async (
 
         const { match, id } = pickBest(sortedResults)
 
-        setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: match, topMatches: take(sortedResults, 10) }])
+        setParseResults((was) => [...was, { x: iconX, y: iconY, empty: false, id, matchedPct: match, topMatches: take(sortedResults, 30) }])
       }
     }
   }

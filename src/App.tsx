@@ -1,15 +1,62 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Grid, Paper, Typography, Container, Tooltip, Link, Box, LinearProgress } from '@mui/material'
-
+import { filter, find, map } from 'lodash'
 import { processImage } from './processor'
 import { DetectedGrid, Preview, DetectedRecipes } from './Results'
+
+const OVERRIDES_STORAGE_KEY = 'forced-overrides'
+
+const initialOverrides: Record<string, ForcedOverride> = JSON.parse(localStorage.getItem(OVERRIDES_STORAGE_KEY) || '{}')
+const overrideConfidenceRange = 5
+
+const overrideReducer = (state: typeof initialOverrides, action: DispatchOverride) => {
+  const { result, override } = action
+  const { x, y, topMatches } = result
+
+  const conditions = map(topMatches, ({ id, match }) => ({
+    id,
+    min: match - overrideConfidenceRange,
+    max: match + overrideConfidenceRange
+  }))
+
+  const key = `${x}-${y}`
+
+  const nextState = { ...state, [key]: { override, conditions } }
+
+  localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(nextState))
+
+  return nextState
+}
 
 const App = () => {
   const imgRef = useRef<HTMLImageElement>(null)
 
   const [parseResults, setParseResults] = useState<ParseResult[]>([])
+  const [forcedOverrides, dispatchForcedOverride] = useReducer(overrideReducer, initialOverrides)
   const [screenshot, setScreenshot] = useState<string>()
   const [gridPreview, setGridPreview] = useState<string>()
+
+  const parsedResultsWithOverrides = useMemo(() => {
+    return map(parseResults, (result) => {
+      const { x, y, topMatches } = result
+
+      const forcedOverride = forcedOverrides[`${x}-${y}`]
+
+      if (forcedOverride) {
+        const { override, conditions } = forcedOverride
+
+        const matchingConditions = filter(conditions, ({ min, max, id }) => {
+          const resultMatch = find(topMatches, { id })
+
+          return resultMatch && resultMatch.match >= min && resultMatch.match <= max
+        })
+
+        return matchingConditions.length >= conditions.length - 5 ? { ...result, id: override } : result
+      } else {
+        return result
+      }
+    })
+  }, [parseResults, forcedOverrides])
 
   const onLoad = useCallback(async () => {
     const image = imgRef.current
@@ -92,10 +139,10 @@ const App = () => {
               <Preview preview={gridPreview} />
             </Grid>
             <Grid item xs={12} md='auto'>
-              <DetectedGrid parseResults={parseResults} />
+              <DetectedGrid parseResults={parsedResultsWithOverrides} dispatchForcedOverride={dispatchForcedOverride} />
             </Grid>
             <Grid item lg={12} xl>
-              <DetectedRecipes parseResults={parseResults} />
+              <DetectedRecipes parseResults={parsedResultsWithOverrides} />
             </Grid>
           </>
         )}
