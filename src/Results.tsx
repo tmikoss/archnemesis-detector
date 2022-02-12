@@ -1,6 +1,6 @@
 import styled from 'styled-components'
-import { useCallback, useMemo, useState } from 'react'
-import { map, countBy, filter, sortBy, each, every, includes, uniq, flatMap, find } from 'lodash'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { map, countBy, filter, sortBy, each, every, includes, uniq, flatMap, find, without } from 'lodash'
 import {
   Avatar,
   List,
@@ -18,12 +18,15 @@ import {
   Link,
   Grid,
   IconButton,
-  Tooltip
+  Tooltip,
+  Checkbox
 } from '@mui/material'
 import { dataItem, ICON_WIDTH, ICONS_PER_ROW } from './utils'
 import { DATA, DataItem } from './assets'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+
+const RECIPE_PIN_KEY = 'pinned-recipe-ids'
 
 const GridContainer = styled.div`
   display: grid;
@@ -161,10 +164,15 @@ const withRecipesAscending = sortBy(
 interface CustomizedDataItem extends DataItem {
   canMake: boolean
   missingToCraft: string[]
+  pinned: boolean
 }
 
-const RecipeRow: React.FC<{ item: CustomizedDataItem; parseResults: ParseResult[] }> = ({ item, parseResults }) => {
-  const { name, icon, recipe, canMake, missingToCraft } = item
+const RecipeRow: React.FC<{
+  item: CustomizedDataItem
+  parseResults: ParseResult[]
+  setPinnedIds: React.Dispatch<React.SetStateAction<string[]>>
+}> = ({ item, parseResults, setPinnedIds }) => {
+  const { id, name, icon, recipe, canMake, missingToCraft, pinned } = item
 
   const recipeItems = map(recipe, dataItem)
 
@@ -174,7 +182,7 @@ const RecipeRow: React.FC<{ item: CustomizedDataItem; parseResults: ParseResult[
     const found = find(parseResults, { id })
 
     return (
-      <Typography component='span' id={id} sx={{ mr: 2 }} color={found ? 'text.primary' : 'grey.700'}>
+      <Typography component='span' key={id} sx={{ mr: 2 }} color={found ? 'text.primary' : 'grey.700'}>
         {name}
       </Typography>
     )
@@ -203,7 +211,14 @@ const RecipeRow: React.FC<{ item: CustomizedDataItem; parseResults: ParseResult[
       <Grid item xs={8}>
         <ListItemText primary={name} secondary={partsText} primaryTypographyProps={{ color: 'primary' }} />
       </Grid>
-      <Grid item xs={1}></Grid>
+      <Grid item xs={1}>
+        <Tooltip title='Pin the recipe to always display it'>
+          <Checkbox
+            checked={pinned}
+            onChange={(_e, checked) => setPinnedIds((was) => (checked ? [...was, id] : without(was, id)))}
+          />
+        </Tooltip>
+      </Grid>
       <Grid item xs={1}>
         <Tooltip title='Copy in-game search string'>
           <IconButton onClick={() => navigator.clipboard.writeText(searchText)}>
@@ -216,6 +231,12 @@ const RecipeRow: React.FC<{ item: CustomizedDataItem; parseResults: ParseResult[
 }
 
 const Recipes: React.FC<{ parseResults: ParseResult[]; showAll?: boolean }> = ({ parseResults, showAll }) => {
+  const [pinnedIds, setPinnedIds] = useState<string[]>(JSON.parse(localStorage.getItem(RECIPE_PIN_KEY) || 'null') || [])
+
+  useEffect(() => {
+    localStorage.setItem(RECIPE_PIN_KEY, JSON.stringify(pinnedIds))
+  }, [pinnedIds])
+
   const customizedRecipes = useMemo(() => {
     const foundItems = uniq(map(parseResults, 'id'))
 
@@ -245,16 +266,19 @@ const Recipes: React.FC<{ parseResults: ParseResult[]; showAll?: boolean }> = ({
       customized.push({
         ...item,
         canMake,
-        missingToCraft
+        missingToCraft,
+        pinned: includes(pinnedIds, id)
       })
     })
 
     return customized
-  }, [parseResults])
+  }, [parseResults, pinnedIds])
 
-  const displayItems = filter(customizedRecipes, ({ canMake }) => showAll || canMake)
+  const displayItems = filter(customizedRecipes, ({ canMake, pinned }) => showAll || canMake || pinned)
 
-  const listItems = map(displayItems, (item) => <RecipeRow item={item} parseResults={parseResults} key={item.id} />)
+  const listItems = map(displayItems, (item) => (
+    <RecipeRow item={item} parseResults={parseResults} setPinnedIds={setPinnedIds} key={item.id} />
+  ))
 
   return <Grid container>{listItems}</Grid>
 }
