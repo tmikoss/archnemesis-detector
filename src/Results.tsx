@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 import { useCallback, useMemo, useState } from 'react'
-import { map, countBy, filter, sortBy, keys, every, includes } from 'lodash'
+import { map, countBy, filter, sortBy, each, every, includes, uniq, flatMap, find } from 'lodash'
 import {
   Avatar,
   List,
@@ -15,10 +15,15 @@ import {
   DialogTitle,
   Typography,
   DialogContent,
-  Link
+  Link,
+  Grid,
+  IconButton,
+  Tooltip
 } from '@mui/material'
 import { dataItem, ICON_WIDTH, ICONS_PER_ROW } from './utils'
-import { DATA } from './assets'
+import { DATA, DataItem } from './assets'
+import CheckIcon from '@mui/icons-material/Check'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 
 const GridContainer = styled.div`
   display: grid;
@@ -130,50 +135,128 @@ export const Preview: React.FC<{ preview?: string }> = ({ preview }) => {
 }
 
 export const DetectedRecipes: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
-  const [tab, setTab] = useState('recipes')
+  const [tab, setTab] = useState('available')
 
   return (
     <>
       <Tabs value={tab} onChange={(_e, newTab) => setTab(newTab)}>
-        <Tab label='Recipes' value='recipes' />
+        <Tab label='Available' value='available' />
+        <Tab label='All recipes' value='all' />
         <Tab label='List' value='list' />
       </Tabs>
       <Paper sx={{ p: 2 }}>
-        {tab === 'recipes' && <Recipes parseResults={parseResults} />}
+        {tab === 'available' && <Recipes parseResults={parseResults} />}
+        {tab === 'all' && <Recipes parseResults={parseResults} showAll />}
         {tab === 'list' && <ResultsList parseResults={parseResults} />}
       </Paper>
     </>
   )
 }
 
-const Recipes: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
-  const foundRecipes = useMemo(() => {
-    const foundItems = map(parseResults, 'id')
+const withRecipesAscending = sortBy(
+  filter(DATA, ({ recipe }) => recipe.length > 0),
+  ({ name, tier }) => [tier, name]
+)
 
-    return filter(
-      DATA,
-      ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(foundItems, requirement))
-    )
-  }, [parseResults])
+interface CustomizedDataItem extends DataItem {
+  canMake: boolean
+  missingToCraft: string[]
+}
 
-  if (foundRecipes.length < 1) {
-    return null
-  }
+const RecipeRow: React.FC<{ item: CustomizedDataItem; parseResults: ParseResult[] }> = ({ item, parseResults }) => {
+  const { name, icon, recipe, canMake, missingToCraft } = item
 
-  const listItems = map(foundRecipes, ({ id, name, icon, recipe }) => {
-    const recipeText = map(recipe, (id) => dataItem(id).name).join(' + ')
+  const recipeItems = map(recipe, dataItem)
+
+  const searchText = map(recipeItems, 'name').join('|')
+
+  const partsText = map(recipeItems, ({ id, name }) => {
+    const found = find(parseResults, { id })
 
     return (
-      <ListItem key={id}>
-        <ListItemAvatar>
-          <Avatar src={icon} />
-        </ListItemAvatar>
-        <ListItemText primary={name} secondary={recipeText} />
-      </ListItem>
+      <Typography component='span' id={id} sx={{ mr: 2 }} color={found ? 'text.primary' : 'grey.700'}>
+        {name}
+      </Typography>
     )
   })
 
-  return <List dense>{listItems}</List>
+  let tooltipText = `Needs ${missingToCraft.length} drops to craft.`
+  if (canMake) {
+    tooltipText = `Can craft this now.`
+  } else if (missingToCraft.length < 1) {
+    tooltipText = `Needs intermediate crafts first, but you have the parts.`
+  }
+
+  return (
+    <Grid container>
+      <Grid item xs={2}>
+        <Tooltip title={tooltipText}>
+          <Badge
+            overlap='circular'
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={canMake ? <CheckIcon /> : String(missingToCraft.length)}
+          >
+            <Avatar src={icon} />
+          </Badge>
+        </Tooltip>
+      </Grid>
+      <Grid item xs={8}>
+        <ListItemText primary={name} secondary={partsText} primaryTypographyProps={{ color: 'primary' }} />
+      </Grid>
+      <Grid item xs={1}></Grid>
+      <Grid item xs={1}>
+        <Tooltip title='Copy in-game search string'>
+          <IconButton onClick={() => navigator.clipboard.writeText(searchText)}>
+            <ContentCopyIcon />
+          </IconButton>
+        </Tooltip>
+      </Grid>
+    </Grid>
+  )
+}
+
+const Recipes: React.FC<{ parseResults: ParseResult[]; showAll?: boolean }> = ({ parseResults, showAll }) => {
+  const customizedRecipes = useMemo(() => {
+    const foundItems = uniq(map(parseResults, 'id'))
+
+    let customized: CustomizedDataItem[] = []
+
+    const missingItemsFor = (id: string, alwaysCraft = false): string[] => {
+      if (!alwaysCraft && includes(foundItems, id)) {
+        return []
+      } else {
+        const { recipe } = dataItem(id)
+
+        if (recipe.length < 1) {
+          return [id]
+        } else {
+          return flatMap(recipe, (nextId) => missingItemsFor(nextId))
+        }
+      }
+    }
+
+    each(withRecipesAscending, (item) => {
+      const { id, recipe } = item
+
+      const missingToCraft = missingItemsFor(id, true)
+
+      const canMake = every(recipe, (id) => includes(foundItems, id))
+
+      customized.push({
+        ...item,
+        canMake,
+        missingToCraft
+      })
+    })
+
+    return customized
+  }, [parseResults])
+
+  const displayItems = filter(customizedRecipes, ({ canMake }) => showAll || canMake)
+
+  const listItems = map(displayItems, (item) => <RecipeRow item={item} parseResults={parseResults} key={item.id} />)
+
+  return <Grid container>{listItems}</Grid>
 }
 
 const ResultsList: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {

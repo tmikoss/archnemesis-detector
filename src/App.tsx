@@ -94,7 +94,7 @@ const App = () => {
             <Grid item xs={12} md='auto'>
               <DetectedGrid parseResults={parseResults} />
             </Grid>
-            <Grid item xs={12} lg>
+            <Grid item lg={12} xl>
               <DetectedRecipes parseResults={parseResults} />
             </Grid>
           </>
