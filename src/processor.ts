@@ -1,5 +1,5 @@
 import resemble, { ResembleComparisonResult } from 'resemblejs'
-import { sortBy, map, isEqual, find, take } from 'lodash'
+import { sortBy, map, take } from 'lodash'
 
 import { DATA, EMPTY_CELL } from './assets'
 import { ICONS_PER_ROW } from './utils'
@@ -40,47 +40,7 @@ const compareImage = (id: string, fromScreenshot: string, fromTemplate: string, 
   })
 }
 
-type Override = {
-  matches: string[],
-  forcedResult: string
-}
-
-const OVERRIDES: Override[] = [
-  // {
-  //   matches: ['berserker', 'toxic', 'echoist', 'arcane-buffer'],
-  //   forcedResult: 'toxic'
-  // },
-  // {
-  //   matches: ['berserker', 'toxic', 'arcane-buffer', 'echoist'],
-  //   forcedResult: 'toxic'
-  // },
-  // {
-  //   matches: ['echoist', 'arcane-buffer', 'berserker', 'incendiary'],
-  //   forcedResult: 'arcane-buffer'
-  // },
-  // {
-  //   matches: ['echoist', 'arcane-buffer', 'berserker', 'toxic'],
-  //   forcedResult: 'arcane-buffer'
-  // },
-  // {
-  //   matches: ['toxic', 'echoist', 'arcane-buffer', 'hasted', 'stormweaver'],
-  //   forcedResult: 'stormweaver'
-  // },
-  // {
-  //   matches: ['toxic', 'arcane-buffer', 'echoist', 'incendiary', 'stormweaver'],
-  //   forcedResult: 'stormweaver'
-  // },
-]
-
 const pickBest = (sortedResults: MatchResult[]): MatchResult => {
-  const sortedIds = map(sortedResults, 'id')
-
-  for (const { matches, forcedResult } of OVERRIDES) {
-    if (isEqual(matches, take(sortedIds, matches.length))) {
-      return find(sortedResults, { id: forcedResult }) as MatchResult
-    }
-  }
-
   return sortedResults[0]
 }
 
