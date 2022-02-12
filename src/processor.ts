@@ -86,8 +86,9 @@ const pickBest = (sortedResults: MatchResult[]): MatchResult => {
 
 export const processImage = async (
   image: HTMLImageElement,
-  preview: HTMLCanvasElement,
   setParseResults: React.Dispatch<React.SetStateAction<ParseResult[]>>,
+  setPreviewImage: React.Dispatch<React.SetStateAction<string | undefined>>,
+  preview: HTMLCanvasElement = document.createElement('canvas'),
   scratchpad: HTMLCanvasElement = document.createElement('canvas')
 ) => {
   const previewCanvas = preview.getContext('2d')
@@ -109,6 +110,8 @@ export const processImage = async (
   previewCanvas.canvas.height = gridHeight
 
   previewCanvas.drawImage(image, gridPositionX, gridPositionY, gridWidth, gridHeight, 0, 0, gridWidth, gridHeight)
+
+  setPreviewImage(previewCanvas.canvas.toDataURL())
 
   const iconWidth = gridWidth / 8
   const iconHeight = gridHeight / 8

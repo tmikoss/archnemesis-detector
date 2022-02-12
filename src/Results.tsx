@@ -1,9 +1,8 @@
 import styled from 'styled-components'
 import { useCallback, useMemo, useState } from 'react'
-import { map, countBy, filter, sortBy } from 'lodash'
+import { map, countBy, filter, sortBy, keys, every, includes } from 'lodash'
 import {
   Avatar,
-  LinearProgress,
   List,
   ListItem,
   ListItemAvatar,
@@ -18,23 +17,18 @@ import {
   DialogContent,
   Link
 } from '@mui/material'
-import { dataItem } from './utils'
-
-const NBSP = ' '
-const ICON_WIDTH = 48
+import { dataItem, ICON_WIDTH, ICONS_PER_ROW } from './utils'
+import { DATA } from './assets'
 
 const GridContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, ${ICON_WIDTH}px);
-  grid-template-rows: repeat(auto-fill, ${ICON_WIDTH}px);
-  gap: ${ICON_WIDTH / 8}px;
+  grid-template-columns: repeat(${ICONS_PER_ROW}, ${ICON_WIDTH}px);
+  grid-template-rows: repeat(${ICONS_PER_ROW}, ${ICON_WIDTH}px);
 `
 
 const GridCell = styled.div<{ $x: number; $y: number }>`
   grid-column: ${({ $x }) => $x + 1};
   grid-row: ${({ $y }) => $y + 1};
-  height: ${ICON_WIDTH}px;
-  width: ${ICON_WIDTH}px;
   cursor: pointer;
 `
 
@@ -45,11 +39,12 @@ const JsonContainer = styled.div`
   font-size: 0.75em;
 `
 
-interface Props {
-  parseResults: ParseResult[]
-}
+const PreviewImg = styled.img`
+  width: 100%;
+  max-width: ${ICONS_PER_ROW * ICON_WIDTH}px;
+`
 
-const ResultsGridCell: React.FC<{ result: ParseResult }> = ({ result }) => {
+const DetectedGridCell: React.FC<{ result: ParseResult }> = ({ result }) => {
   const { id, x, y, empty } = result
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -106,13 +101,82 @@ const ResultsGridCell: React.FC<{ result: ParseResult }> = ({ result }) => {
   )
 }
 
-const ResultsGrid: React.FC<Props> = ({ parseResults }) => {
-  const cells = map(parseResults, (result, idx) => <ResultsGridCell result={result} key={idx} />)
+export const DetectedGrid: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
+  const cells = map(parseResults, (result, idx) => <DetectedGridCell result={result} key={idx} />)
 
-  return <GridContainer>{cells}</GridContainer>
+  return (
+    <>
+      <Tabs value={0}>
+        <Tab label='Detected' />
+      </Tabs>
+      <Paper sx={{ p: 2 }}>
+        <GridContainer>{cells}</GridContainer>
+      </Paper>
+    </>
+  )
 }
 
-const ResultsList: React.FC<Props> = ({ parseResults }) => {
+export const Preview: React.FC<{ preview?: string }> = ({ preview }) => {
+  return (
+    <>
+      <Tabs value={0}>
+        <Tab label='Inventory' />
+      </Tabs>
+      <Paper sx={{ p: 2 }}>
+        <PreviewImg src={preview} alt='This should contain exactly the archnemesis inventory from your screenshot' />
+      </Paper>
+    </>
+  )
+}
+
+export const DetectedRecipes: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
+  const [tab, setTab] = useState('recipes')
+
+  return (
+    <>
+      <Tabs value={tab} onChange={(_e, newTab) => setTab(newTab)}>
+        <Tab label='Recipes' value='recipes' />
+        <Tab label='List' value='list' />
+      </Tabs>
+      <Paper sx={{ p: 2 }}>
+        {tab === 'recipes' && <Recipes parseResults={parseResults} />}
+        {tab === 'list' && <ResultsList parseResults={parseResults} />}
+      </Paper>
+    </>
+  )
+}
+
+const Recipes: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
+  const foundRecipes = useMemo(() => {
+    const foundItems = map(parseResults, 'id')
+
+    return filter(
+      DATA,
+      ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(foundItems, requirement))
+    )
+  }, [parseResults])
+
+  if (foundRecipes.length < 1) {
+    return null
+  }
+
+  const listItems = map(foundRecipes, ({ id, name, icon, recipe }) => {
+    const recipeText = map(recipe, (id) => dataItem(id).name).join(' + ')
+
+    return (
+      <ListItem key={id}>
+        <ListItemAvatar>
+          <Avatar src={icon} />
+        </ListItemAvatar>
+        <ListItemText primary={name} secondary={recipeText} />
+      </ListItem>
+    )
+  })
+
+  return <List dense>{listItems}</List>
+}
+
+const ResultsList: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }) => {
   const grouped = useMemo(() => {
     const counted = countBy(
       filter(parseResults, ({ empty }) => !empty),
@@ -142,25 +206,4 @@ const ResultsList: React.FC<Props> = ({ parseResults }) => {
   })
 
   return <List dense>{listItems}</List>
-}
-
-export const Results: React.FC<Props> = ({ parseResults }) => {
-  const [tab, setTab] = useState('grid')
-
-  const progress = Math.min(Math.ceil((parseResults.length * 100) / 64), 100)
-
-  return (
-    <>
-      <Tabs value={tab} onChange={(_e, newTab) => setTab(newTab)}>
-        <Tab label='Grid' value='grid' />
-        <Tab label='List' value='list' />
-      </Tabs>
-      <Paper sx={{ p: 2 }}>
-        {tab === 'grid' && <ResultsGrid parseResults={parseResults} />}
-        {tab === 'list' && <ResultsList parseResults={parseResults} />}
-      </Paper>
-
-      {progress < 100 ? <LinearProgress variant='determinate' value={progress} sx={{ mt: 2 }} /> : null}
-    </>
-  )
 }

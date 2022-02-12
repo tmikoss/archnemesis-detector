@@ -70,7 +70,7 @@ describe('reported misclassifications', () => {
 
         const image = await loadImage(filename)
 
-        await processImage(image, buildCanvas(), setState, buildCanvas())
+        await processImage(image, setState, jest.fn(), buildCanvas(), buildCanvas())
       }, TIMEOUT)
 
       it('should provide result for every square', () => {

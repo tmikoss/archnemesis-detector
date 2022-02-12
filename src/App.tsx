@@ -1,77 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { map, countBy, filter, keys, every, includes, find } from 'lodash'
-import {
-  Avatar,
-  Grid,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Paper,
-  Typography,
-  Container,
-  Tooltip,
-  Link,
-  Box
-} from '@mui/material'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Grid, Paper, Typography, Container, Tooltip, Link, Box, LinearProgress } from '@mui/material'
 
-import { DATA } from './assets'
-import { dataItem } from './utils'
 import { processImage } from './processor'
-import { Results } from './Results'
-
-const FoundRecipes: React.FC<{ foundItems: Record<string, number> }> = ({ foundItems }) => {
-  const foundRecipes = useMemo(() => {
-    const distinctFoundItems = keys(foundItems)
-
-    return filter(
-      DATA,
-      ({ recipe }) => recipe.length > 0 && every(recipe, (requirement) => includes(distinctFoundItems, requirement))
-    )
-  }, [foundItems])
-
-  if (foundRecipes.length < 1) {
-    return null
-  }
-
-  const listItems = map(foundRecipes, ({ id, name, icon, recipe }) => {
-    const recipeText = map(recipe, (id) => dataItem(id).name).join(' + ')
-
-    return (
-      <ListItem key={id}>
-        <ListItemAvatar>
-          <Avatar src={icon} />
-        </ListItemAvatar>
-        <ListItemText primary={name} secondary={recipeText} />
-      </ListItem>
-    )
-  })
-
-  return (
-    <Paper sx={{ p: 2, mb: 2 }}>
-      <Typography variant='h5'>Possible recipes</Typography>
-      <List dense>{listItems}</List>
-    </Paper>
-  )
-}
+import { DetectedGrid, Preview, DetectedRecipes } from './Results'
 
 const App = () => {
-  const gridCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
   const [parseResults, setParseResults] = useState<ParseResult[]>([])
   const [screenshot, setScreenshot] = useState<string>()
+  const [gridPreview, setGridPreview] = useState<string>()
 
   const onLoad = useCallback(async () => {
-    const previewCanvas = gridCanvasRef.current
     const image = imgRef.current
 
-    if (!previewCanvas || !image) {
-      return
+    if (image) {
+      processImage(image, setParseResults, setGridPreview)
     }
-
-    processImage(image, previewCanvas, setParseResults)
-  }, [setParseResults])
+  }, [])
 
   useEffect(() => {
     const event = (evt: unknown) => {
@@ -96,14 +42,7 @@ const App = () => {
     document.querySelector('body')?.addEventListener('paste', event)
   }, [])
 
-  const foundItems = useMemo(
-    () =>
-      countBy(
-        filter(parseResults, ({ empty }) => !empty),
-        'id'
-      ),
-    [parseResults]
-  )
+  const progress = Math.min(Math.ceil((parseResults.length * 100) / 64), 100)
 
   return (
     <Container maxWidth='xl'>
@@ -144,23 +83,19 @@ const App = () => {
             </Paper>
           </Grid>
         )}
-        <Grid item xs={12} md='auto'>
-          <Paper sx={{ p: 2, display: screenshot ? 'block' : 'none' }}>
-            <canvas ref={gridCanvasRef} width={0} height={0} />
-
-            <Typography variant='caption' component='div'>
-              Above image should contain exactly the archnemesis inventory from your screenshot
-            </Typography>
-          </Paper>
+        <Grid item xs={12}>
+          {progress < 100 ? <LinearProgress variant='determinate' value={progress} sx={{ mt: 2 }} /> : null}
         </Grid>
         {screenshot && (
           <>
-            <Grid item xs={12} md>
-              <Results parseResults={parseResults} />
+            <Grid item xs={12} md='auto'>
+              <Preview preview={gridPreview} />
             </Grid>
-
-            <Grid item xs={12}>
-              <FoundRecipes foundItems={foundItems} />
+            <Grid item xs={12} md='auto'>
+              <DetectedGrid parseResults={parseResults} />
+            </Grid>
+            <Grid item xs={12} lg>
+              <DetectedRecipes parseResults={parseResults} />
             </Grid>
           </>
         )}
