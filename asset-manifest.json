@@ -1,11 +1,10 @@
 {
   "files": {
-    "main.js": "/archnemesis-detector/static/js/main.fbb91f33.js",
-    "static/media/sample.png": "/archnemesis-detector/static/media/sample.249186fcf71a6ae37662.png",
+    "main.js": "/archnemesis-detector/static/js/main.34ec4a7e.js",
     "index.html": "/archnemesis-detector/index.html",
-    "main.fbb91f33.js.map": "/archnemesis-detector/static/js/main.fbb91f33.js.map"
+    "main.34ec4a7e.js.map": "/archnemesis-detector/static/js/main.34ec4a7e.js.map"
   },
   "entrypoints": [
-    "static/js/main.fbb91f33.js"
+    "static/js/main.34ec4a7e.js"
   ]
 }
