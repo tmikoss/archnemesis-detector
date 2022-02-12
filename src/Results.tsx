@@ -276,9 +276,10 @@ const Recipes: React.FC<{ parseResults: ParseResult[]; showAll?: boolean }> = ({
 
   const displayItems = filter(customizedRecipes, ({ canMake, pinned }) => showAll || canMake || pinned)
 
-  const listItems = map(displayItems, (item) => (
-    <RecipeRow item={item} parseResults={parseResults} setPinnedIds={setPinnedIds} key={item.id} />
-  ))
+  const listItems = map(
+    sortBy(displayItems, ({ tier, canMake, pinned, name }) => [pinned ? 0 : 1, canMake ? 0 : 1, 10 - tier, name]),
+    (item) => <RecipeRow item={item} parseResults={parseResults} setPinnedIds={setPinnedIds} key={item.id} />
+  )
 
   return <Grid container>{listItems}</Grid>
 }
