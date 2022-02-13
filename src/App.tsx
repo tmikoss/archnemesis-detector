@@ -3,6 +3,7 @@ import { Grid, Paper, Typography, Container, Tooltip, Link, Box, LinearProgress 
 import { every, find, map } from 'lodash'
 import { processImage } from './processor'
 import { DetectedGrid, Preview, DetectedRecipes } from './Results'
+import { HighlightProvider } from './highlights'
 
 const OVERRIDES_STORAGE_KEY = 'forced-overrides'
 
@@ -125,22 +126,19 @@ const App = () => {
             )}
           </Paper>
         </Grid>
-
         {screenshot && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant='caption'>
-                This is very much a work in progress, it's bound to make mistakes, a lot of them. When it makes a
-                mistake, click on the wrong cell in right-side grid and follow the instructions there.
-              </Typography>
-            </Paper>
-          </Grid>
-        )}
-        <Grid item xs={12}>
-          {progress < 100 ? <LinearProgress variant='determinate' value={progress} sx={{ mt: 2 }} /> : null}
-        </Grid>
-        {screenshot && (
-          <>
+          <HighlightProvider>
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant='caption'>
+                  This is very much a work in progress, it's bound to make mistakes, a lot of them. When it makes a
+                  mistake, click on the wrong cell in right-side grid and follow the instructions there.
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12}>
+              {progress < 100 ? <LinearProgress variant='determinate' value={progress} sx={{ mt: 2 }} /> : null}
+            </Grid>
             <Grid item xs={12} md='auto'>
               <Preview preview={gridPreview} />
             </Grid>
@@ -150,7 +148,7 @@ const App = () => {
             <Grid item lg={12} xl>
               <DetectedRecipes parseResults={parsedResultsWithOverrides} />
             </Grid>
-          </>
+          </HighlightProvider>
         )}
       </Grid>
 

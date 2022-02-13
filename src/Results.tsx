@@ -24,6 +24,7 @@ import { dataItem, ICON_WIDTH, ICONS_PER_ROW } from './utils'
 import { DATA, DataItem } from './assets'
 import CheckIcon from '@mui/icons-material/Check'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import { useHighlights } from './highlights'
 
 const RECIPE_PIN_KEY = 'pinned-recipe-ids'
 
@@ -51,6 +52,11 @@ const DetectedGridCell: React.FC<{ result: ParseResult; dispatchForcedOverride: 
   const { id, x, y, empty, topMatches } = result
 
   const [modalOpen, setModalOpen] = useState(false)
+  const { highlights, setHighlights } = useHighlights()
+
+  const highlighted = includes(highlights, id)
+
+  const onMouseOver = useCallback(() => id && setHighlights([id]), [id, setHighlights])
 
   const openModal = useCallback(() => {
     setModalOpen(true)
@@ -63,9 +69,20 @@ const DetectedGridCell: React.FC<{ result: ParseResult; dispatchForcedOverride: 
 
   return (
     <>
-      <GridCell $x={x} $y={y} key={`${x}-${y}`} onClick={openModal}>
+      <GridCell $x={x} $y={y} key={`${x}-${y}`} onClick={openModal} onMouseOver={onMouseOver}>
         <Tooltip title={empty ? 'empty' : name}>
-          <Avatar src={icon} alt={name} sx={{ width: ICON_WIDTH, height: ICON_WIDTH, backgroundColor: '#07071f' }}>
+          <Avatar
+            src={icon}
+            alt={name}
+            sx={{
+              width: ICON_WIDTH,
+              height: ICON_WIDTH,
+              backgroundColor: '#07071f',
+              borderWidth: 2,
+              borderStyle: 'solid',
+              borderColor: highlighted ? '#ce93d8' : 'transparent'
+            }}
+          >
             {empty ? 'x' : null}
           </Avatar>
         </Tooltip>
@@ -191,11 +208,20 @@ const RecipeRow: React.FC<{
 
   const searchText = `^(${map(recipeItems, ({ id }) => id.replaceAll('-', '.')).join('|')})`
 
+  const { highlights, setHighlights } = useHighlights()
+
   const partsText = map(recipeItems, ({ id, name }) => {
     const found = find(parseResults, { id })
 
+    let color = 'grey.700'
+    if (found && includes(highlights, id)) {
+      color = 'secondary'
+    } else if (found) {
+      color = 'text.primary'
+    }
+
     return (
-      <Typography component='span' key={id} sx={{ mr: 2 }} color={found ? 'text.primary' : 'grey.700'}>
+      <Typography component='span' key={id} sx={{ mr: 2 }} color={color}>
         {name}
       </Typography>
     )
@@ -208,8 +234,10 @@ const RecipeRow: React.FC<{
     tooltipText = `Needs intermediate crafts first, but you have the parts.`
   }
 
+  const onMouseOver = useCallback(() => setHighlights(recipe), [recipe, setHighlights])
+
   return (
-    <Grid container>
+    <Grid container onMouseOver={onMouseOver}>
       <Grid item xs={2}>
         <Tooltip title={tooltipText}>
           <Badge
@@ -313,9 +341,11 @@ const ResultsList: React.FC<{ parseResults: ParseResult[] }> = ({ parseResults }
     return sortBy(withData, 'name')
   }, [parseResults])
 
+  const { setHighlights } = useHighlights()
+
   const listItems = map(grouped, ({ name, icon, id, count }) => {
     return (
-      <ListItem key={id}>
+      <ListItem onMouseOver={() => setHighlights([id])} key={id}>
         <ListItemAvatar>
           <Badge badgeContent={count > 1 ? count : null} color='primary'>
             <Avatar src={icon} />
