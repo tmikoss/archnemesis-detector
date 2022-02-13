@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Grid, Paper, Typography, Container, Tooltip, Link, Box, LinearProgress } from '@mui/material'
-import { filter, find, map } from 'lodash'
+import { every, find, map } from 'lodash'
 import { processImage } from './processor'
 import { DetectedGrid, Preview, DetectedRecipes } from './Results'
 
 const OVERRIDES_STORAGE_KEY = 'forced-overrides'
 
 const initialOverrides: Record<string, ForcedOverride> = JSON.parse(localStorage.getItem(OVERRIDES_STORAGE_KEY) || '{}')
-const overrideConfidenceRange = 5
+const overrideConfidenceRange = 2
 
 const overrideReducer = (state: typeof initialOverrides, action: DispatchOverride) => {
   const { result, override } = action
-  const { x, y, topMatches } = result
+  const { id, x, y, matchedPct } = result
 
-  const conditions = map(topMatches, ({ id, match }) => ({
-    id,
-    min: match - overrideConfidenceRange,
-    max: match + overrideConfidenceRange
-  }))
+  const conditions = [
+    {
+      id,
+      min: matchedPct ? matchedPct - overrideConfidenceRange : 100,
+      max: matchedPct ? matchedPct + overrideConfidenceRange : 0
+    }
+  ]
 
   const key = `${x}-${y}`
 
@@ -45,13 +47,13 @@ const App = () => {
       if (forcedOverride) {
         const { override, conditions } = forcedOverride
 
-        const matchingConditions = filter(conditions, ({ min, max, id }) => {
+        const matchingConditions = every(conditions, ({ min, max, id }) => {
           const resultMatch = find(topMatches, { id })
 
           return resultMatch && resultMatch.match >= min && resultMatch.match <= max
         })
 
-        return matchingConditions.length >= conditions.length - 5 ? { ...result, id: override } : result
+        return matchingConditions ? { ...result, id: override } : result
       } else {
         return result
       }
