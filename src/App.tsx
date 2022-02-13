@@ -13,13 +13,15 @@ const overrideReducer = (state: typeof initialOverrides, action: DispatchOverrid
   const { result, override } = action
   const { id, x, y, matchedPct } = result
 
-  const conditions = [
-    {
+  const conditions = []
+
+  if (id && matchedPct) {
+    conditions.push({
       id,
-      min: matchedPct ? matchedPct - overrideConfidenceRange : 100,
-      max: matchedPct ? matchedPct + overrideConfidenceRange : 0
-    }
-  ]
+      min: matchedPct - overrideConfidenceRange,
+      max: matchedPct + overrideConfidenceRange
+    })
+  }
 
   const key = `${x}-${y}`
 
@@ -47,11 +49,13 @@ const App = () => {
       if (forcedOverride) {
         const { override, conditions } = forcedOverride
 
-        const matchingConditions = every(conditions, ({ min, max, id }) => {
-          const resultMatch = find(topMatches, { id })
+        const matchingConditions =
+          conditions.length > 0 &&
+          every(conditions, ({ min, max, id }) => {
+            const resultMatch = find(topMatches, { id })
 
-          return resultMatch && resultMatch.match >= min && resultMatch.match <= max
-        })
+            return resultMatch && resultMatch.match >= min && resultMatch.match <= max
+          })
 
         return matchingConditions ? { ...result, id: override } : result
       } else {
