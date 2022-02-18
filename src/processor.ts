@@ -61,7 +61,7 @@ export const processImage = async (
   const imageHeight = image.height
 
   const gridPositionX = imageHeight * 0.106
-  const gridPositionY = imageHeight * 0.3
+  const gridPositionY = imageHeight * 0.32
 
   const gridWidth = imageHeight * 0.407
   const gridHeight = gridWidth
